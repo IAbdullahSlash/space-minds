@@ -1,29 +1,8 @@
-# Frontend Setup
+# SpaceMinds
 
-## Setup & Installation
+All application source code has been moved to the `IqraKhan` branch.
 
-### Prerequisites
-Make sure you have [Node.js](https://nodejs.org/) (v18+) installed.
-
-### 1. Clone the repository
+Please switch to the `IqraKhan` branch to view the implementation:
 ```bash
-git clone https://github.com/IAbdullahSlash/space-minds.git
-cd space-minds
+git checkout IqraKhan
 ```
-
-### 2. Install dependencies
-```bash
-npm install
-```
-
-### 3. Start the development server
-```bash
-npm run dev
-```
-Open your browser and navigate to `http://localhost:5173`.
-
-### 4. Build for Production
-```bash
-npm run build
-```
-This compiles assets to the `dist/` directory, ready to be deployed to any static host.
