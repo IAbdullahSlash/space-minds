@@ -1,4 +1,9 @@
 import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import chromadb
 from sentence_transformers import SentenceTransformer
 from google import genai

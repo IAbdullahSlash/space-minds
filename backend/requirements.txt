@@ -1,0 +1,8 @@
+fastapi              → API
+uvicorn              → FastAPI server
+chromadb             → vector database
+sentence-transformers → embeddings
+google-genai         → Gemini
+python-dotenv        → .env loading
+pandas               → dataset processing
+pyarrow              → Parquet files

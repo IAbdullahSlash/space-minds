@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import './App.css'
 import ChatWindow from './components/ChatWindow'
 import InputBar from './components/InputBar'
+import { askQuestion } from './api'
 
 /* Seed conversation so the UI looks lively on first load */
 const SEED_MESSAGES = [
@@ -34,21 +35,49 @@ export default function App() {
     }
     setMessages(prev => [...prev, userMsg])
 
-    /* Simulate assistant "typing" then responding */
-    setIsTyping(true)
-    setTimeout(() => {
+    /* If there are images but no text, or if text-only query, call the backend */
+    /* Note: For now, only text queries are supported by the backend */
+    if (text.trim()) {
+      setIsTyping(true)
+
+      askQuestion(text.trim())
+        .then(result => {
+          const botMsg = {
+            id: uid(),
+            role: 'assistant',
+            text: result.answer || 'No answer received',
+            images: [],
+            timestamp: new Date(),
+            /* Store sources for potential future display */
+            sources: result.sources || [],
+          }
+          setMessages(prev => [...prev, botMsg])
+        })
+        .catch(error => {
+          const errorMsg = {
+            id: uid(),
+            role: 'assistant',
+            text: error.message || 'Unable to connect to the RAG backend. Please make sure the FastAPI server is running.',
+            images: [],
+            timestamp: new Date(),
+            isError: true,
+          }
+          setMessages(prev => [...prev, errorMsg])
+        })
+        .finally(() => {
+          setIsTyping(false)
+        })
+    } else if (images.length > 0) {
+      /* Images without text: show placeholder (backend will support this later) */
       const botMsg = {
         id: uid(),
         role: 'assistant',
-        text: images.length > 0
-          ? `Got it — I can see ${images.length} image${images.length > 1 ? 's' : ''} you attached${text.trim() ? ` along with your message: "${text.trim()}"` : ''}. (Backend not connected yet — this is a UI demo.)`
-          : `You said: "${text.trim()}". (Backend not connected yet — this is a UI demo.)`,
+        text: `I can see ${images.length} image${images.length > 1 ? 's' : ''} you attached. Text-based queries are currently supported. Please add a question about your image(s).`,
         images: [],
         timestamp: new Date(),
       }
       setMessages(prev => [...prev, botMsg])
-      setIsTyping(false)
-    }, 1200)
+    }
   }, [])
 
   return (

@@ -1,0 +1,105 @@
+{
+  "description": "Manual evaluation questions for the BigEarthNet RAG demo",
+  "questions": [
+    {
+      "id": 1,
+      "category": "presence",
+      "query": "Are pastures represented in the image?"
+    },
+    {
+      "id": 2,
+      "category": "presence",
+      "query": "Is there any pasture visible in the scene?"
+    },
+    {
+      "id": 3,
+      "category": "presence",
+      "query": "Can you identify pasture areas in the satellite scene?"
+    },
+    {
+      "id": 4,
+      "category": "area",
+      "query": "Do pastures cover a large portion of the image?"
+    },
+    {
+      "id": 5,
+      "category": "count",
+      "query": "Are pastures represented in multiple continuous areas?"
+    },
+    {
+      "id": 6,
+      "category": "adjacency",
+      "query": "Is arable land located next to pastures?"
+    },
+    {
+      "id": 7,
+      "category": "adjacency",
+      "query": "Do agricultural fields border pasture areas?"
+    },
+    {
+      "id": 8,
+      "category": "presence",
+      "query": "Does the scene contain mixed forest?"
+    },
+    {
+      "id": 9,
+      "category": "presence",
+      "query": "Is broad-leaved forest present?"
+    },
+    {
+      "id": 10,
+      "category": "presence",
+      "query": "Are there coniferous forests in the scene?"
+    },
+    {
+      "id": 11,
+      "category": "metadata",
+      "query": "Which country is this satellite scene associated with?"
+    },
+    {
+      "id": 12,
+      "category": "metadata",
+      "query": "What season does this satellite scene belong to?"
+    },
+    {
+      "id": 13,
+      "category": "metadata",
+      "query": "What climate zone does this scene belong to?"
+    },
+    {
+      "id": 14,
+      "category": "metadata",
+      "query": "What are the approximate coordinates of this scene?"
+    },
+    {
+      "id": 15,
+      "category": "description",
+      "query": "Describe the satellite scene."
+    },
+    {
+      "id": 16,
+      "category": "multi_fact",
+      "query": "Are pastures present, and are they adjacent to arable land?"
+    },
+    {
+      "id": 17,
+      "category": "multi_fact",
+      "query": "What country is the scene from and what season was it captured in?"
+    },
+    {
+      "id": 18,
+      "category": "negative",
+      "query": "What is the population of Austria?"
+    },
+    {
+      "id": 19,
+      "category": "negative",
+      "query": "What was the weather when this satellite image was captured?"
+    },
+    {
+      "id": 20,
+      "category": "negative",
+      "query": "What type of soil is present in this scene?"
+    }
+  ]
+}
