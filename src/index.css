@@ -1,0 +1,62 @@
+/* ── Global reset & theme tokens ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Palette */
+  --clr-bg:           #1c1e22;   /* charcoal base */
+  --clr-surface:      #23272e;   /* slightly lighter panel */
+  --clr-surface-2:    #2c3039;   /* card / bubble bg */
+  --clr-border:       #363c46;
+  --clr-amber:        #f5a623;   /* primary accent */
+  --clr-amber-light:  #ffc55a;
+  --clr-amber-dark:   #c47c0f;
+  --clr-text:         #e8eaf0;
+  --clr-text-muted:   #8a8f9e;
+  --clr-user-bubble:  #3d2f0b;   /* dark amber tint */
+  --clr-bot-bubble:   #2c3039;
+
+  /* Typography */
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-size-base: clamp(0.875rem, 1.5vw, 1rem);
+
+  /* Radii */
+  --radius-sm:  0.5rem;
+  --radius-md:  1rem;
+  --radius-lg:  1.5rem;
+  --radius-xl:  2rem;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+
+  /* Transitions */
+  --transition: 0.18s ease;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;   /* let inner containers scroll */
+}
+
+/* Thin amber scrollbar */
+::-webkit-scrollbar          { width: 5px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: var(--clr-amber-dark); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--clr-amber); }
