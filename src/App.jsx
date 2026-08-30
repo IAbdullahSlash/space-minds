@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import './App.css'
 import ChatWindow from './components/ChatWindow'
 import InputBar from './components/InputBar'
-import { askQuestion } from './api'
+import { askQuestion, analyzeImage } from './api'
 
 /* Seed conversation so the UI looks lively on first load */
 const SEED_MESSAGES = [
@@ -35,9 +35,42 @@ export default function App() {
     }
     setMessages(prev => [...prev, userMsg])
 
-    /* If there are images but no text, or if text-only query, call the backend */
-    /* Note: For now, only text queries are supported by the backend */
-    if (text.trim()) {
+    /* Route based on whether images are attached */
+    if (images.length > 0 && text.trim()) {
+      /* Image + text: use multimodal RAG */
+      setIsTyping(true)
+
+      /* Use only the first image for /analyze */
+      analyzeImage(images[0], text.trim())
+        .then(result => {
+          const botMsg = {
+            id: uid(),
+            role: 'assistant',
+            text: result.answer || 'No answer received',
+            images: [],
+            timestamp: new Date(),
+            /* Store visual description and sources from multimodal RAG */
+            visualDescription: result.visual_description,
+            sources: result.sources || [],
+          }
+          setMessages(prev => [...prev, botMsg])
+        })
+        .catch(error => {
+          const errorMsg = {
+            id: uid(),
+            role: 'assistant',
+            text: error.message || 'Unable to connect to the RAG backend. Please make sure the FastAPI server is running.',
+            images: [],
+            timestamp: new Date(),
+            isError: true,
+          }
+          setMessages(prev => [...prev, errorMsg])
+        })
+        .finally(() => {
+          setIsTyping(false)
+        })
+    } else if (text.trim()) {
+      /* Text only: use existing /ask endpoint */
       setIsTyping(true)
 
       askQuestion(text.trim())
@@ -48,7 +81,7 @@ export default function App() {
             text: result.answer || 'No answer received',
             images: [],
             timestamp: new Date(),
-            /* Store sources for potential future display */
+            /* Store sources from text-only RAG */
             sources: result.sources || [],
           }
           setMessages(prev => [...prev, botMsg])
@@ -68,11 +101,11 @@ export default function App() {
           setIsTyping(false)
         })
     } else if (images.length > 0) {
-      /* Images without text: show placeholder (backend will support this later) */
+      /* Images without text: show prompt */
       const botMsg = {
         id: uid(),
         role: 'assistant',
-        text: `I can see ${images.length} image${images.length > 1 ? 's' : ''} you attached. Text-based queries are currently supported. Please add a question about your image(s).`,
+        text: `I can see ${images.length} image${images.length > 1 ? 's' : ''} you attached. Please add a question about the image to get started!`,
         images: [],
         timestamp: new Date(),
       }

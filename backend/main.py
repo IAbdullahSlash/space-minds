@@ -2,7 +2,7 @@ from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from rag import ask, analyze_image
+from rag import ask, analyze_image_with_rag
 
 
 app = FastAPI(
@@ -50,15 +50,21 @@ async def analyze_satellite_image(
     question: str = Form(...)
 ):
     """
-    Analyze a satellite image and answer a question about it.
+    Analyze a satellite image using multimodal RAG pipeline.
+    
+    Pipeline:
+    1. Analyze image with Gemini vision to extract visual description
+    2. Retrieve similar BigEarthNet scenes using question + visual description
+    3. Generate final grounded answer using visual + retrieved context
     
     Accepts:
-    - image: Uploaded image file (multipart/form-data)
+    - image: Uploaded satellite image file (multipart/form-data)
     - question: Text question about the image (multipart/form-data)
     
     Returns:
-    - answer: Gemini's analysis of the image
-    - visual_description: Same as answer for current implementation
+    - answer: Grounded analysis combining visual + BigEarthNet knowledge
+    - visual_description: Visual description extracted from the image
+    - sources: Retrieved BigEarthNet documents used for context
     """
     
     # Validate that an image was actually uploaded
@@ -92,8 +98,8 @@ async def analyze_satellite_image(
                 detail="Image file is empty"
             )
         
-        # Analyze the image using Gemini
-        result = analyze_image(
+        # Analyze the image using multimodal RAG pipeline
+        result = analyze_image_with_rag(
             image_bytes=image_bytes,
             image_mime_type=image.content_type,
             question=question.strip()

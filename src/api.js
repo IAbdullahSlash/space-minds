@@ -44,3 +44,53 @@ export async function askQuestion(query) {
     throw error
   }
 }
+
+/**
+ * Analyze a satellite image with a question using multimodal RAG.
+ * @param {Object} imageData - Image data object with { dataUrl, name }
+ * @param {string} question - The user's question about the image
+ * @returns {Promise} - The backend response with answer, visual_description, and sources
+ * @throws {Error} - Network or HTTP errors
+ */
+export async function analyzeImage(imageData, question) {
+  if (!question || !question.trim()) {
+    throw new Error('Question cannot be empty')
+  }
+
+  if (!imageData || !imageData.dataUrl) {
+    throw new Error('Image data is missing')
+  }
+
+  const url = `${getApiUrl()}/analyze`
+
+  try {
+    // Convert data URL to Blob
+    const response = await fetch(imageData.dataUrl)
+    const blob = await response.blob()
+
+    // Create FormData with image and question
+    const formData = new FormData()
+    formData.append('image', blob, imageData.name || 'image')
+    formData.append('question', question.trim())
+
+    // Send to backend
+    // Note: Do NOT set Content-Type header - browser will set multipart/form-data boundary
+    const fetchResponse = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!fetchResponse.ok) {
+      throw new Error(`Backend error: ${fetchResponse.status} ${fetchResponse.statusText}`)
+    }
+
+    const data = await fetchResponse.json()
+    return data
+  } catch (error) {
+    // Handle fetch errors (network issues, CORS, etc.)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Unable to connect to the RAG backend. Please make sure the FastAPI server is running on http://127.0.0.1:8000')
+    }
+    throw error
+  }
+}
