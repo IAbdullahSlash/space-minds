@@ -7,6 +7,7 @@ load_dotenv()
 import chromadb
 from sentence_transformers import SentenceTransformer
 from google import genai
+from google.genai import types
 
 DB_PATH = "demo_data/chroma_db"
 COLLECTION_NAME = "bigearthnet_demo"
@@ -99,6 +100,55 @@ Give a concise and clear answer.
     )
 
     return response.text
+
+
+def analyze_image(image_bytes, image_mime_type, question):
+    """
+    Analyze a satellite image using Gemini and answer a question about it.
+    
+    Args:
+        image_bytes: Raw image bytes
+        image_mime_type: MIME type of the image (e.g., 'image/jpeg')
+        question: User's question about the image
+    
+    Returns:
+        Dictionary with 'answer' and 'visual_description' fields
+    """
+    
+    prompt = f"""
+You are a remote sensing expert specialized in satellite image analysis and land cover classification.
+
+Analyze the provided satellite image and answer the following question:
+
+{question}
+
+Rules:
+• Analyze only what can reasonably be inferred from the provided satellite image.
+• Identify relevant land cover features (agricultural areas, forests, urban zones, water bodies, etc.).
+• Answer the user's question based on visual evidence from the image.
+• Avoid inventing information that cannot be visually supported.
+• Return a concise but useful visual analysis.
+• Be specific about spatial patterns, colors, and features observed.
+"""
+
+    response = gemini_client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[
+            prompt,
+            types.Part.from_bytes(
+                data=image_bytes,
+                mime_type=image_mime_type,
+            ),
+        ]
+    )
+
+    # Extract the response text
+    analysis_text = response.text
+
+    return {
+        "answer": analysis_text,
+        "visual_description": analysis_text
+    }
 
 
 def ask(query, top_k=5):

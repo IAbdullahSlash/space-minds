@@ -6,3 +6,4 @@ google-genai         → Gemini
 python-dotenv        → .env loading
 pandas               → dataset processing
 pyarrow              → Parquet files
+python-multipart     → Multipart form data handling
