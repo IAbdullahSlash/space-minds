@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -9,18 +10,41 @@ from sentence_transformers import SentenceTransformer
 from google import genai
 from google.genai import types
 
-DB_PATH = "demo_data/chroma_db"
+# Resolve database paths relative to the backend directory
+BACKEND_DIR = Path(__file__).parent
+DB_PATH = BACKEND_DIR / "demo_data" / "chroma_db"
+DB_PATH_EXPANDED = BACKEND_DIR / "demo_data" / "chroma_db_expanded"
+
 COLLECTION_NAME = "bigearthnet_demo"
+COLLECTION_NAME_EXPANDED = "bigearthnet_expanded"
 
 print("Loading embedding model...")
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-print("Connecting to ChromaDB...")
-client = chromadb.PersistentClient(path=DB_PATH)
+print("Connecting to ChromaDB (existing)...")
+client = chromadb.PersistentClient(path=str(DB_PATH))
 
 collection = client.get_collection(
     name=COLLECTION_NAME
 )
+
+print("Connecting to ChromaDB (expanded)...")
+try:
+    client_expanded = chromadb.PersistentClient(path=str(DB_PATH_EXPANDED))
+    collection_expanded = client_expanded.get_collection(
+        name=COLLECTION_NAME_EXPANDED
+    )
+    
+    # Verify expanded collection has documents
+    expanded_count = collection_expanded.count()
+    print(f"✓ Expanded collection loaded: {expanded_count} documents")
+    if expanded_count < 4500:
+        print(f"⚠ Warning: Expanded collection has only {expanded_count} documents (expected ~5000)")
+except Exception as e:
+    print(f"✗ Error loading expanded collection: {e}")
+    print(f"  Path checked: {DB_PATH_EXPANDED}")
+    print(f"  Collection name: {COLLECTION_NAME_EXPANDED}")
+    collection_expanded = None
 
 print("Connecting to Gemini...")
 gemini_client = genai.Client(
@@ -53,6 +77,62 @@ def retrieve(query, top_k=5):
 
         sources.append(source)
 
+    return sources
+
+
+def retrieve_expanded(query, top_k=3):
+    """
+    Retrieve similar documents from the expanded BigEarthNet collection.
+    
+    Uses the same SentenceTransformer embedding model as retrieve().
+    
+    Args:
+        query: User query string
+        top_k: Number of top results to return (default: 3)
+    
+    Returns:
+        List of source dictionaries with structure:
+        [
+            {
+                "id": "...",
+                "distance": ...,
+                "text": "...",
+                "metadata": {...}
+            }
+        ]
+    
+    Raises:
+        RuntimeError: If expanded collection is not available
+    """
+    if collection_expanded is None:
+        raise RuntimeError(
+            f"Expanded ChromaDB collection is not available. "
+            f"Expected path: {DB_PATH_EXPANDED} with collection '{COLLECTION_NAME_EXPANDED}'"
+        )
+    
+    query_embedding = embedding_model.encode(query).tolist()
+    
+    results = collection_expanded.query(
+        query_embeddings=[query_embedding],
+        n_results=top_k,
+        include=["documents", "metadatas", "distances"]
+    )
+    
+    sources = []
+    
+    for i in range(len(results["documents"][0])):
+        
+        distance = results["distances"][0][i]
+        
+        source = {
+            "id": results["ids"][0][i],
+            "distance": float(distance),
+            "text": results["documents"][0][i],
+            "metadata": results["metadatas"][0][i]
+        }
+        
+        sources.append(source)
+    
     return sources
 
 
@@ -153,14 +233,19 @@ Rules:
 
 def analyze_image_with_rag(image_bytes, image_mime_type, question):
     """
-    Multimodal RAG pipeline for satellite image analysis.
+    Phase 4A: Vision → RAG → Synthesis pipeline for satellite image analysis.
     
-    Combines Gemini vision analysis with BigEarthNet knowledge retrieval.
+    Combines Gemini vision analysis with expanded BigEarthNet knowledge retrieval.
     
     Pipeline:
-    1. Analyze image with Gemini vision to get visual description
-    2. Retrieve similar BigEarthNet documents using combined question + visual description
-    3. Generate final answer using visual description + retrieved context
+    1. Analyze image with Gemini vision to extract visual description
+    2. Retrieve similar BigEarthNet scenes using visual description as semantic query
+    3. Generate final grounded answer synthesizing visual evidence + BigEarthNet context
+    
+    Key principles:
+    - Uploaded image is PRIMARY visual evidence
+    - BigEarthNet context is SUPPORTING KNOWLEDGE
+    - Retrieved scenes are reference material, not claims about the uploaded image
     
     Args:
         image_bytes: Raw image bytes
@@ -168,65 +253,69 @@ def analyze_image_with_rag(image_bytes, image_mime_type, question):
         question: User's question about the image
     
     Returns:
-        Dictionary with 'answer', 'visual_description', and 'sources'
+        Dictionary with 'answer', 'visual_description', and 'similar_scenes'
     """
     
     # Step 1: Get visual description from Gemini vision analysis
     visual_result = analyze_image(image_bytes, image_mime_type, question)
     visual_description = visual_result["visual_description"]
     
-    # Step 2: Construct retrieval query combining question and visual description
-    retrieval_query = f"""
-User question:
-{question}
-
-Visual context from image:
-{visual_description}
-"""
+    # Step 2: Query expanded BigEarthNet collection using visual description
+    # Use only the visual description as the semantic query
+    similar_scenes = retrieve_expanded(visual_description, top_k=3)
     
-    # Step 3: Retrieve similar BigEarthNet documents
-    sources = retrieve(retrieval_query, top_k=3)
-    
-    # Step 4: Construct context from retrieved sources
+    # Step 3: Construct context from retrieved BigEarthNet scenes
     context = "\n\n".join(
         f"""
-Source {i + 1}:
-ID: {source['id']}
-Distance: {source['distance']:.4f}
-Metadata: {source['metadata']}
+BigEarthNet Reference Scene {i + 1}:
+ID: {scene['id']}
+Similarity Score: {scene['distance']:.4f}
+Metadata: {scene['metadata']}
 
-Text:
-{source["text"]}
+Description:
+{scene["text"]}
 """
-        for i, source in enumerate(sources)
+        for i, scene in enumerate(similar_scenes)
     )
     
-    # Step 5: Generate final answer using visual description + retrieved context
-    final_prompt = f"""
+    # Step 4: Generate final answer with careful synthesis prompt
+    synthesis_prompt = f"""
 You are a remote sensing expert analyzing a satellite image provided by a user.
 
-User's original question:
-{question}
-
-Visual description of the satellite image (generated by image analysis):
+UPLOADED IMAGE ANALYSIS (Primary Evidence):
 {visual_description}
 
-Related BigEarthNet knowledge from similar satellite scenes:
+USER QUESTION:
+{question}
+
+SUPPORTING BIGEARTH NET REFERENCE SCENES (Context Only):
 {context}
 
-Instructions:
-• Use the visual description to understand what is actually visible in the provided image.
-• Use the BigEarthNet context as supporting remote sensing knowledge and reference material.
-• Synthesize the visual observation with the retrieved knowledge to provide an informed answer.
-• Do not invent information that is not supported by the visual description or retrieved context.
-• If the image or retrieved context does not support a claim, indicate that the information is insufficient.
-• Answer the user's original question directly and concisely.
-• Provide a useful, specific response based on visual evidence and domain knowledge.
+SYNTHESIS INSTRUCTIONS:
+
+Your task is to answer the user's question using:
+1. The visual analysis of their uploaded image (PRIMARY EVIDENCE)
+2. Supporting BigEarthNet reference scenes as contextual knowledge
+
+CRITICAL RULES:
+• The uploaded image analysis is your primary visual evidence
+• BigEarthNet scenes are SUPPORTING CONTEXT only - they are reference material
+• Do NOT claim that the retrieved BigEarthNet scenes appear in the user's uploaded image
+• Do NOT invent visual details that are not supported by the uploaded image analysis
+• If the uploaded image and BigEarthNet context provide conflicting information, prioritize what is actually visible in the uploaded image
+• If the uploaded image does not contain enough information to answer the question, say so directly
+• Use BigEarthNet knowledge to explain patterns and provide context, but ground all claims about the specific image in what the visual analysis shows
+
+ANSWER GENERATION:
+• Answer the user's original question concisely
+• Base your response on visual evidence from the uploaded image
+• Support your answer with BigEarthNet reference knowledge where applicable
+• Be specific and practical
 """
     
     response = gemini_client.models.generate_content(
         model="gemini-2.5-flash",
-        contents=final_prompt
+        contents=synthesis_prompt
     )
     
     final_answer = response.text
@@ -234,7 +323,7 @@ Instructions:
     return {
         "answer": final_answer,
         "visual_description": visual_description,
-        "sources": sources
+        "similar_scenes": similar_scenes
     }
 
 

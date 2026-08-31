@@ -50,21 +50,35 @@ async def analyze_satellite_image(
     question: str = Form(...)
 ):
     """
-    Analyze a satellite image using multimodal RAG pipeline.
+    Phase 4A: Vision → RAG → Synthesis satellite image analysis.
     
-    Pipeline:
-    1. Analyze image with Gemini vision to extract visual description
-    2. Retrieve similar BigEarthNet scenes using question + visual description
-    3. Generate final grounded answer using visual + retrieved context
+    Multimodal pipeline combining image vision with BigEarthNet context retrieval:
     
-    Accepts:
-    - image: Uploaded satellite image file (multipart/form-data)
-    - question: Text question about the image (multipart/form-data)
+    1. Analyze uploaded image with Gemini vision to extract visual description
+    2. Query expanded BigEarthNet collection using visual description
+    3. Synthesize uploaded image evidence + BigEarthNet reference context
     
-    Returns:
-    - answer: Grounded analysis combining visual + BigEarthNet knowledge
-    - visual_description: Visual description extracted from the image
-    - sources: Retrieved BigEarthNet documents used for context
+    Key principle:
+    - Uploaded image is PRIMARY visual evidence
+    - BigEarthNet scenes are SUPPORTING CONTEXT (not claims about the uploaded image)
+    
+    Request (multipart/form-data):
+    - image: Uploaded satellite image file
+    - question: Text question about the image
+    
+    Response:
+    {
+        "answer": "Grounded answer combining visual evidence + BigEarthNet context",
+        "visual_description": "Visual description extracted from the uploaded image",
+        "similar_scenes": [
+            {
+                "id": "BigEarthNet scene ID",
+                "distance": 0.123,
+                "text": "Scene description",
+                "metadata": {...}
+            }
+        ]
+    }
     """
     
     # Validate that an image was actually uploaded
@@ -98,7 +112,7 @@ async def analyze_satellite_image(
                 detail="Image file is empty"
             )
         
-        # Analyze the image using multimodal RAG pipeline
+        # Analyze the image using Vision → RAG → Synthesis pipeline
         result = analyze_image_with_rag(
             image_bytes=image_bytes,
             image_mime_type=image.content_type,
