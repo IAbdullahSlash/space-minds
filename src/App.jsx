@@ -8,50 +8,19 @@ import ChatHeader from './components/ChatHeader'
 import ChatWindow from './components/ChatWindow'
 import InputBar from './components/InputBar'
 
-// Seed conversation history for multi-chat experience
+// Fresh, empty initial session — no hardcoded demo history
 const INITIAL_SESSIONS = [
   {
     id: 'session-1',
-    title: 'SpaceMinds UI & Vision Architecture',
+    title: 'New Conversation',
     group: 'today',
-    messages: [
-      {
-        id: 'msg-1',
-        role: 'assistant',
-        text: 'Greetings! I am **SpaceMinds**, your multimodal AI assistant powered by the Emerald 4.0 reasoning engine.\n\nYou can ask complex questions, request code refactors, or attach one or more images for in-depth visual analysis.',
-        images: [],
-        timestamp: new Date(Date.now() - 1000 * 60 * 15),
-      },
-    ],
-  },
-  {
-    id: 'session-2',
-    title: 'Dark Forest Theme Design Tokens',
-    group: 'today',
-    messages: [
-      {
-        id: 'msg-s2-1',
-        role: 'user',
-        text: 'How should I structure dark emerald theme variables for glassmorphism?',
-        images: [],
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      },
-      {
-        id: 'msg-s2-2',
-        role: 'assistant',
-        text: 'Here is a clean approach using CSS custom properties with layered opacity:\n\n```css\n:root {\n  --bg-deep: #06110c;\n  --bg-surface: rgba(16, 41, 31, 0.75);\n  --accent-mint: #34d399;\n  --border-glass: rgba(52, 211, 153, 0.15);\n  --glow-mint: 0 0 24px rgba(52, 211, 153, 0.25);\n}\n```\n\nThis ensures high contrast, silky smooth ambient backdrops, and seamless accessibility.',
-        images: [],
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2 + 15000),
-      },
-    ],
-  },
-  {
-    id: 'session-3',
-    title: 'High-Performance React Hooks',
-    group: 'previous',
     messages: [],
   },
 ]
+
+// Standard fallback response until backend API is connected
+const FALLBACK_NO_BACKEND_RESPONSE =
+  'No backend connected yet. Connect your backend API to receive live responses.'
 
 let idCounter = 100
 const uid = (prefix = 'msg') => `${prefix}-${Date.now()}-${idCounter++}`
@@ -144,7 +113,10 @@ export default function App() {
   const handleExportChat = useCallback(() => {
     if (currentMessages.length === 0) return
     const transcript = currentMessages
-      .map((m) => `### ${m.role === 'user' ? 'User' : 'SpaceMinds AI'} (${new Date(m.timestamp).toLocaleTimeString()})\n\n${m.text}\n${m.images?.length ? `\n*[Attached ${m.images.length} image(s)]*\n` : ''}`)
+      .map(
+        (m) =>
+          `### ${m.role === 'user' ? 'User' : 'SpaceMinds AI'} (${new Date(m.timestamp).toLocaleTimeString()})\n\n${m.text}\n${m.images?.length ? `\n*[Attached ${m.images.length} image(s)]*\n` : ''}`
+      )
       .join('\n\n---\n\n')
 
     const blob = new Blob([transcript], { type: 'text/markdown' })
@@ -158,7 +130,7 @@ export default function App() {
 
   // Send a message
   const handleSend = useCallback(
-    ({ text, images, webSearch }) => {
+    ({ text, images }) => {
       if (!text.trim() && images.length === 0) return
 
       const userMsg = {
@@ -191,25 +163,13 @@ export default function App() {
         })
       )
 
-      // Simulate Assistant Response
+      // Fallback assistant response when no backend API is integrated
       setIsTyping(true)
       setTimeout(() => {
-        let responseText = ''
-
-        if (images.length > 0 && text.trim()) {
-          responseText = `### Visual & Multimodal Analysis\n\nI have received and processed **${images.length} attached image${images.length > 1 ? 's' : ''}** alongside your query: \n\n> *"${text.trim()}"*\n\n**Observations:**\n- **Asset Inspection:** Analyzed pixel fidelity and structural layout.\n- **Context Alignment:** Synthesized visual cues with prompt constraints.\n\n\`\`\`javascript\n// Verification summary\nconst analysis = {\n  status: "verified",\n  attachments: ${images.length},\n  mode: "${webSearch ? 'vision + live search' : 'vision standard'}"\n};\n\`\`\`\n\nFeel free to ask specific questions about any region or detail in your uploaded image(s)!`
-        } else if (images.length > 0) {
-          responseText = `### Image Received\n\nI have inspected the **${images.length} image attachment${images.length > 1 ? 's' : ''}**.\n\nPlease let me know what specific insights or analysis you would like me to extract!`
-        } else if (webSearch) {
-          responseText = `### Live Web Search Insights\n\nQuerying real-time sources for **"${text.trim()}"**:\n\n1. Found relevant documentation and latest community standards.\n2. Summarized optimal implementation patterns for maximum reliability.\n\nLet me know if you would like me to dive deeper into any aspect!`
-        } else {
-          responseText = `I have received your request regarding **"${text.trim()}"**.\n\nHere is a structured breakdown:\n\n- **Key Concept:** Modern responsive design with deep emerald and mint accents.\n- **Performance:** Hardware-accelerated CSS keyframe animations and low CPU overhead.\n- **Interactivity:** Glowing cursor spotlight aura and drag-and-drop file upload.\n\n\`\`\`bash\n# SpaceMinds Ready\necho "AI system initialized with Emerald 4.0 engine"\n\`\`\``
-        }
-
         const botMsg = {
           id: uid(),
           role: 'assistant',
-          text: responseText,
+          text: FALLBACK_NO_BACKEND_RESPONSE,
           images: [],
           timestamp: new Date(),
         }
@@ -222,19 +182,19 @@ export default function App() {
           )
         )
         setIsTyping(false)
-      }, 1100)
+      }, 800)
     },
     [activeSessionId]
   )
 
-  // Regenerate last assistant response
+  // Regenerate last assistant response fallback
   const handleRegenerate = useCallback(() => {
     setIsTyping(true)
     setTimeout(() => {
       const refreshedMsg = {
         id: uid(),
         role: 'assistant',
-        text: `### Refreshed Response (Alternative Formulation)\n\nHere is an alternative perspective with enhanced architectural insights.\n\n\`\`\`javascript\nexport const config = {\n  theme: "dark-emerald",\n  accent: "mint-34d399",\n  glowSpotlight: true,\n  ambientBlobs: "smooth-css"\n};\n\`\`\`\n\nAll components are verified and responsive across all viewports!`,
+        text: FALLBACK_NO_BACKEND_RESPONSE,
         images: [],
         timestamp: new Date(),
       }
@@ -246,7 +206,7 @@ export default function App() {
         )
       )
       setIsTyping(false)
-    }, 900)
+    }, 600)
   }, [activeSessionId])
 
   // Drag overlay listeners
@@ -259,7 +219,12 @@ export default function App() {
 
   const handleWindowDragLeave = (e) => {
     e.preventDefault()
-    if (e.clientY <= 0 || e.clientX <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+    if (
+      e.clientY <= 0 ||
+      e.clientX <= 0 ||
+      e.clientX >= window.innerWidth ||
+      e.clientY >= window.innerHeight
+    ) {
       setIsGlobalDragging(false)
     }
   }
