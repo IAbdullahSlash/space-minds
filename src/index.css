@@ -1,4 +1,6 @@
-/* ── Global reset & theme tokens ── */
+/* ── SpaceMinds Dark Emerald & Mint Design Tokens ── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -6,57 +8,183 @@
 }
 
 :root {
-  /* Palette */
-  --clr-bg:           #1c1e22;   /* charcoal base */
-  --clr-surface:      #23272e;   /* slightly lighter panel */
-  --clr-surface-2:    #2c3039;   /* card / bubble bg */
-  --clr-border:       #363c46;
-  --clr-amber:        #f5a623;   /* primary accent */
-  --clr-amber-light:  #ffc55a;
-  --clr-amber-dark:   #c47c0f;
-  --clr-text:         #e8eaf0;
-  --clr-text-muted:   #8a8f9e;
-  --clr-user-bubble:  #3d2f0b;   /* dark amber tint */
-  --clr-bot-bubble:   #2c3039;
+  /* ── Color Palette: Deep Forest, Emerald & Mint ── */
+  --bg-deep:           #06110c;   /* Ultra-deep near-black forest */
+  --bg-sidebar:        #091812;   /* Distinct deep emerald sidebar */
+  --bg-main:           #0b1e16;   /* Main chat canvas background */
+  --bg-surface:        #10291f;   /* Elevated panels / glass cards */
+  --bg-surface-hover:  #153629;   /* Hover state for panels */
+  --bg-surface-active: #1a4233;   /* Active selection */
+  --bg-input:          rgba(10, 26, 19, 0.85);
 
-  /* Typography */
-  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-size-base: clamp(0.875rem, 1.5vw, 1rem);
+  /* ── Accent & Highlights (Mint / Sage / Emerald) ── */
+  --accent-mint:        #34d399;   /* Radiant primary mint green */
+  --accent-mint-hover:  #6ee7b7;   /* Lighter mint for hover */
+  --accent-mint-glow:   rgba(52, 211, 153, 0.25);
+  --accent-emerald:     #10b981;   /* Vibrant emerald */
+  --accent-sage:        #a7f3d0;   /* Soft sage text highlight */
+  --accent-dark:        #064e3b;   /* Deep emerald boundary */
+  --accent-deep-rgb:    6, 78, 59;
+  --accent-mint-rgb:    52, 211, 153;
 
-  /* Radii */
-  --radius-sm:  0.5rem;
-  --radius-md:  1rem;
-  --radius-lg:  1.5rem;
-  --radius-xl:  2rem;
+  /* ── Gradients ── */
+  --grad-main:          radial-gradient(ellipse at 50% 0%, #113324 0%, #06110c 70%);
+  --grad-sidebar:       linear-gradient(180deg, #091912 0%, #050e0a 100%);
+  --grad-user-bubble:   linear-gradient(135deg, #14402d 0%, #1d563d 100%);
+  --grad-bot-bubble:    linear-gradient(145deg, rgba(16, 41, 31, 0.75) 0%, rgba(10, 26, 19, 0.85) 100%);
+  --grad-mint-btn:      linear-gradient(135deg, #34d399 0%, #059669 100%);
+  --grad-mint-glow:     linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%);
 
-  /* Spacing */
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
+  /* ── Borders & Outlines ── */
+  --border-subtle:      rgba(52, 211, 153, 0.12);
+  --border-medium:      rgba(52, 211, 153, 0.22);
+  --border-bright:      rgba(52, 211, 153, 0.45);
+  --border-user:        rgba(52, 211, 153, 0.35);
 
-  /* Transitions */
-  --transition: 0.18s ease;
+  /* ── Typography Colors ── */
+  --text-primary:       #f2fbf6;   /* Crisp off-white with mint tint */
+  --text-secondary:     #a3b8ad;   /* Soft sage grey */
+  --text-muted:         #637d71;   /* Muted forest grey */
+  --text-inverse:       #04120b;   /* Dark text for mint buttons */
+
+  /* ── Typography ── */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* ── Radii ── */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+  --radius-full: 9999px;
+
+  /* ── Shadows & Glows ── */
+  --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md:  0 6px 20px rgba(0, 0, 0, 0.45);
+  --shadow-lg:  0 12px 36px rgba(0, 0, 0, 0.6);
+  --glow-mint:  0 0 24px rgba(52, 211, 153, 0.28);
+  --glow-subtle: 0 0 16px rgba(52, 211, 153, 0.12);
+
+  /* ── Transitions ── */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.24s var(--ease-spring);
+  --transition-smooth: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html, body, #root {
   height: 100%;
   width: 100%;
+  overflow: hidden;
 }
 
 body {
   font-family: var(--font-sans);
-  font-size: var(--font-size-base);
-  background-color: var(--clr-bg);
-  color: var(--clr-text);
-  line-height: 1.55;
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;   /* let inner containers scroll */
+  -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  user-select: text;
 }
 
-/* Thin amber scrollbar */
-::-webkit-scrollbar          { width: 5px; }
-::-webkit-scrollbar-track    { background: transparent; }
-::-webkit-scrollbar-thumb    { background: var(--clr-amber-dark); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: var(--clr-amber); }
+/* ── Sleek Mint Scrollbars ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(52, 211, 153, 0.2);
+  border-radius: var(--radius-full);
+  transition: background var(--transition-fast);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(52, 211, 153, 0.45);
+}
+
+/* ── Selection ── */
+::selection {
+  background: rgba(52, 211, 153, 0.3);
+  color: #fff;
+}
+
+/* ── Global Keyframes for Ambient Animations ── */
+@keyframes blobFloat1 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(80px, -60px) scale(1.18);
+  }
+  66% {
+    transform: translate(-50px, 50px) scale(0.92);
+  }
+}
+
+@keyframes blobFloat2 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  40% {
+    transform: translate(-90px, 70px) scale(1.15);
+  }
+  75% {
+    transform: translate(60px, -40px) scale(0.95);
+  }
+}
+
+@keyframes blobFloat3 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(0.95);
+  }
+  50% {
+    transform: translate(70px, 90px) scale(1.22);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pulseDot {
+  0%, 80%, 100% {
+    transform: translateY(0) scale(0.85);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-6px) scale(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}

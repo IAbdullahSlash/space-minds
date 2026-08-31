@@ -1,0 +1,100 @@
+.ambient-bg-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+
+/* Subtle radial depth gradient base */
+.ambient-bg-base {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 15%,
+    rgba(16, 60, 42, 0.45) 0%,
+    rgba(7, 24, 17, 0.75) 55%,
+    var(--bg-deep) 100%
+  );
+}
+
+/* Moving organic gradient orbs */
+.ambient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.22;
+  will-change: transform;
+}
+
+/* Emerald Primary Blob - Top Right to Center */
+.ambient-blob--1 {
+  top: -10%;
+  right: -5%;
+  width: 58vw;
+  height: 58vw;
+  max-width: 720px;
+  max-height: 720px;
+  background: radial-gradient(circle, #10b981 0%, #064e3b 60%, transparent 80%);
+  animation: blobFloat1 26s ease-in-out infinite alternate;
+}
+
+/* Mint Glow Blob - Bottom Left */
+.ambient-blob--2 {
+  bottom: -15%;
+  left: -8%;
+  width: 62vw;
+  height: 62vw;
+  max-width: 780px;
+  max-height: 780px;
+  background: radial-gradient(circle, #059669 0%, #042f23 60%, transparent 80%);
+  animation: blobFloat2 32s ease-in-out infinite alternate;
+}
+
+/* Forest Depth Orb - Middle Center */
+.ambient-blob--3 {
+  top: 35%;
+  left: 28%;
+  width: 48vw;
+  height: 48vw;
+  max-width: 600px;
+  max-height: 600px;
+  background: radial-gradient(circle, #34d399 0%, #065f46 50%, transparent 75%);
+  opacity: 0.14;
+  animation: blobFloat3 36s ease-in-out infinite alternate;
+}
+
+/* Sage Accent Orb - Top Left */
+.ambient-blob--4 {
+  top: 5%;
+  left: 10%;
+  width: 38vw;
+  height: 38vw;
+  max-width: 450px;
+  max-height: 450px;
+  background: radial-gradient(circle, #6ee7b7 0%, #047857 60%, transparent 80%);
+  opacity: 0.12;
+  animation: pulseGlow 18s ease-in-out infinite;
+}
+
+/* Ambient subtle grid mesh pattern overlay */
+.ambient-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(52, 211, 153, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(52, 211, 153, 0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at 50% 50%, black 40%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, black 40%, transparent 85%);
+  opacity: 0.7;
+}
+
+/* Subtle noise grain layer */
+.ambient-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}

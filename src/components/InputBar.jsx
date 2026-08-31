@@ -1,33 +1,42 @@
 import { useState, useRef, useCallback } from 'react'
+import {
+  ArrowUp,
+  Image as ImageIcon,
+  Globe,
+  Mic,
+  MicOff,
+  Sparkles,
+} from 'lucide-react'
 import './InputBar.css'
 import ImagePreview from './ImagePreview'
 
-const MAX_IMAGES = 5   /* cap to avoid accidental overload */
+const MAX_IMAGES = 6
 
-/* Read a File as a data URL, returning { dataUrl, name } */
 const readAsDataUrl = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload  = () => resolve({ dataUrl: reader.result, name: file.name })
+    reader.onload = () => resolve({ dataUrl: reader.result, name: file.name })
     reader.onerror = reject
     reader.readAsDataURL(file)
   })
 
 /**
- * InputBar — text + image compose area.
- * @param {{ onSend: (payload: {text: string, images: Array}) => void, disabled: boolean }} props
+ * InputBar - Sleek chat input with image staging, drag-and-drop, and glowing send trigger.
  */
 export default function InputBar({ onSend, disabled }) {
-  const [text, setText]     = useState('')
+  const [text, setText] = useState('')
   const [images, setImages] = useState([])
-  const fileInputRef = useRef(null)
-  const textareaRef  = useRef(null)
+  const [webSearchActive, setWebSearchActive] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
-  /* Auto-grow textarea height */
+  const fileInputRef = useRef(null)
+  const textareaRef = useRef(null)
+
   const autoGrow = (el) => {
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 128) + 'px'
+    el.style.height = Math.min(el.scrollHeight, 150) + 'px'
   }
 
   const handleTextChange = (e) => {
@@ -35,7 +44,6 @@ export default function InputBar({ onSend, disabled }) {
     autoGrow(e.target)
   }
 
-  /* Handle keyboard shortcut: Enter sends, Shift+Enter = newline */
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -43,116 +51,170 @@ export default function InputBar({ onSend, disabled }) {
     }
   }
 
-  /* File picker callback */
-  const handleFilePick = useCallback(async (e) => {
-    const files = Array.from(e.target.files || [])
+  const handleFilePick = useCallback(
+    async (e) => {
+      const files = Array.from(e.target.files || [])
+      if (!files.length) return
+
+      const remaining = MAX_IMAGES - images.length
+      const toProcess = files.slice(0, remaining)
+
+      const loaded = await Promise.all(
+        toProcess.filter((f) => f.type.startsWith('image/')).map(readAsDataUrl)
+      )
+      setImages((prev) => [...prev, ...loaded])
+      e.target.value = ''
+    },
+    [images.length]
+  )
+
+  const handleRemoveImage = useCallback((index) => {
+    setImages((prev) => prev.filter((_, i) => i !== index))
+  }, [])
+
+  // Drag and Drop Handling
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+  const handleDrop = async (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const files = Array.from(e.dataTransfer.files || [])
     if (!files.length) return
 
     const remaining = MAX_IMAGES - images.length
     const toProcess = files.slice(0, remaining)
 
     const loaded = await Promise.all(
-      toProcess
-        .filter(f => f.type.startsWith('image/'))
-        .map(readAsDataUrl)
+      toProcess.filter((f) => f.type.startsWith('image/')).map(readAsDataUrl)
     )
-    setImages(prev => [...prev, ...loaded])
+    setImages((prev) => [...prev, ...loaded])
+  }
 
-    /* Reset the input so re-picking the same file triggers onChange */
-    e.target.value = ''
-  }, [images.length])
-
-  /* Remove a staged image by index */
-  const handleRemoveImage = useCallback((index) => {
-    setImages(prev => prev.filter((_, i) => i !== index))
-  }, [])
-
-  /* Submit */
   const handleSend = useCallback(() => {
     if (disabled) return
     if (!text.trim() && images.length === 0) return
 
-    onSend({ text, images })
+    onSend({
+      text: text.trim(),
+      images,
+      webSearch: webSearchActive,
+    })
+
     setText('')
     setImages([])
-    /* Reset textarea height */
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
     textareaRef.current?.focus()
-  }, [disabled, text, images, onSend])
+  }, [disabled, text, images, webSearchActive, onSend])
 
   const canSend = !disabled && (text.trim().length > 0 || images.length > 0)
 
   return (
-    <div className="input-bar">
-      {/* Thumbnail preview strip */}
-      <ImagePreview images={images} onRemove={handleRemoveImage} />
+    <div className="input-bar-container">
+      <div
+        className={`input-glass-frame ${isDragging ? 'input-glass-frame--dragging' : ''}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {/* Thumbnail Preview Strip */}
+        <ImagePreview images={images} onRemove={handleRemoveImage} />
 
-      <div className="input-row">
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="file-input-hidden"
-          onChange={handleFilePick}
-          aria-hidden="true"
-          tabIndex={-1}
-        />
+        <div className="input-main-row">
+          {/* Hidden File Picker */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden-file-input"
+            onChange={handleFilePick}
+            tabIndex={-1}
+            aria-hidden="true"
+          />
 
-        {/* Image attach button */}
-        <button
-          type="button"
-          className="input-icon-btn"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || images.length >= MAX_IMAGES}
-          aria-label={`Attach images (${images.length}/${MAX_IMAGES} attached)`}
-          title="Attach images"
-        >
-          {/* Inline SVG — paperclip / image icon */}
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="3" y="3" width="18" height="18" rx="3" ry="3" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21 15 16 10 5 21" />
-          </svg>
-        </button>
+          {/* Attach Images Button */}
+          <button
+            type="button"
+            className="input-action-btn"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || images.length >= MAX_IMAGES}
+            title={`Attach images (${images.length}/${MAX_IMAGES})`}
+            aria-label="Attach images"
+          >
+            <ImageIcon size={18} />
+          </button>
 
-        {/* Text area */}
-        <textarea
-          ref={textareaRef}
-          className="input-textarea"
-          value={text}
-          onChange={handleTextChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Message SpaceMinds… (Enter to send)"
-          rows={1}
-          disabled={disabled}
-          aria-label="Message input"
-          aria-multiline="true"
-        />
+          {/* Web Search Mode Toggle */}
+          <button
+            type="button"
+            className={`input-action-btn ${webSearchActive ? 'input-action-btn--active' : ''}`}
+            onClick={() => setWebSearchActive(!webSearchActive)}
+            title={webSearchActive ? 'Web search enabled' : 'Enable web search'}
+            aria-label="Toggle web search"
+          >
+            <Globe size={18} />
+          </button>
 
-        {/* Send button */}
-        <button
-          type="button"
-          className="send-btn"
-          onClick={handleSend}
-          disabled={!canSend}
-          aria-label="Send message"
-          title="Send"
-        >
-          {/* Arrow-up icon */}
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <line x1="12" y1="19" x2="12" y2="5" />
-            <polyline points="5 12 12 5 19 12" />
-          </svg>
-        </button>
+          {/* Textarea Input */}
+          <textarea
+            ref={textareaRef}
+            className="input-textarea"
+            value={text}
+            onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              images.length > 0
+                ? 'Add context or instructions for attached image(s)...'
+                : 'Ask SpaceMinds anything... (Shift+Enter for newline)'
+            }
+            rows={1}
+            disabled={disabled}
+            aria-label="Message prompt"
+          />
+
+          {/* Voice Input Simulation Toggle */}
+          <button
+            type="button"
+            className={`input-action-btn ${isRecording ? 'input-action-btn--active' : ''}`}
+            onClick={() => setIsRecording(!isRecording)}
+            title={isRecording ? 'Stop voice input' : 'Dictate message'}
+            aria-label="Voice input"
+          >
+            {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
+          </button>
+
+          {/* Send Button */}
+          <button
+            type="button"
+            className="input-send-btn"
+            onClick={handleSend}
+            disabled={!canSend}
+            title="Send message"
+            aria-label="Send message"
+          >
+            <ArrowUp size={17} strokeWidth={2.6} />
+          </button>
+        </div>
       </div>
 
-      <p className="input-hint">
-        Shift + Enter for a new line · max {MAX_IMAGES} images
-      </p>
+      {/* Bottom Hint */}
+      <div className="input-footer-bar">
+        <div className="input-footer-hint">
+          <Sparkles size={11} color="var(--accent-mint)" />
+          <span>SpaceMinds can analyze code, text & images.</span>
+          <span className="desktop-only">• Drag & drop images directly.</span>
+        </div>
+        {text.length > 0 && <span className="input-char-count">{text.length} chars</span>}
+      </div>
     </div>
   )
 }

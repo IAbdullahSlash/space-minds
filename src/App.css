@@ -1,68 +1,62 @@
-/* App shell */
-.app-shell {
+/* ── Root Application Layout ── */
+.app-container {
+  display: flex;
+  width: 100vw;
+  height: 100dvh;
+  background-color: var(--bg-deep);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Main Chat Area ── */
+.main-chat-panel {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100dvh;          /* dynamic viewport height — handles mobile browsers */
-  max-width: 900px;
-  margin: 0 auto;
-  background: var(--clr-surface);
-  border-left:  1px solid var(--clr-border);
-  border-right: 1px solid var(--clr-border);
+  height: 100%;
+  position: relative;
+  z-index: 5;
+  background: var(--grad-main);
+  overflow: hidden;
 }
 
-/* ── Header ── */
-.app-header {
+/* Dropzone drag overlay over entire app */
+.global-drag-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 15, 10, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 3px dashed var(--accent-mint);
+  z-index: 100;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-md) var(--space-lg);
-  background: var(--clr-surface);
-  border-bottom: 1px solid var(--clr-border);
-  flex-shrink: 0;
-  user-select: none;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--accent-mint);
+  animation: messageSlideIn 0.2s ease;
+  pointer-events: none;
 }
 
-.app-header__icon {
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 50%;
-  background: var(--clr-amber);
+.global-drag-icon {
+  width: 5rem;
+  height: 5rem;
+  border-radius: var(--radius-lg);
+  background: rgba(52, 211, 153, 0.15);
+  border: 1px solid var(--accent-mint);
   display: grid;
   place-items: center;
-  font-size: 1.1rem;
-  flex-shrink: 0;
+  box-shadow: 0 0 35px var(--accent-mint-glow);
 }
 
-.app-header__title {
-  font-size: 1.05rem;
+.global-drag-text {
+  font-size: 1.25rem;
   font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--clr-text);
+  color: var(--text-primary);
 }
 
-.app-header__subtitle {
-  font-size: 0.72rem;
-  color: var(--clr-text-muted);
-}
-
-.app-header__status {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  color: var(--clr-text-muted);
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #4caf50;
-  flex-shrink: 0;
-}
-
-@media (max-width: 480px) {
-  .app-header { padding: var(--space-sm) var(--space-md); }
-  .app-header__subtitle { display: none; }
+.global-drag-subtext {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
 }
