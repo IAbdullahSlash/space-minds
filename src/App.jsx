@@ -1,138 +1,296 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { Image as ImageIcon } from 'lucide-react'
 import './App.css'
+import BackgroundBlobs from './components/BackgroundBlobs'
+import GlowCursor from './components/GlowCursor'
+import Sidebar from './components/Sidebar'
+import ChatHeader from './components/ChatHeader'
 import ChatWindow from './components/ChatWindow'
 import InputBar from './components/InputBar'
 import { askQuestion, analyzeImage } from './api'
 
-/* Seed conversation so the UI looks lively on first load */
-const SEED_MESSAGES = [
+// Fresh, empty initial session — no hardcoded demo history
+const INITIAL_SESSIONS = [
   {
-    id: 'seed-1',
-    role: 'assistant',
-    text: 'Hello! I\'m your AI assistant. Ask me anything or attach images to your query.',
-    images: [],
-    timestamp: new Date(Date.now() - 60_000),
+    id: 'session-1',
+    title: 'New Conversation',
+    group: 'today',
+    messages: [],
   },
 ]
 
-let idCounter = 1
-const uid = () => `msg-${Date.now()}-${idCounter++}`
+// Standard fallback response until backend API is connected
+const FALLBACK_NO_BACKEND_RESPONSE =
+  'No backend connected yet. Connect your backend API to receive live responses.'
+
+let idCounter = 100
+const uid = (prefix = 'msg') => `${prefix}-${Date.now()}-${idCounter++}`
 
 export default function App() {
-  const [messages, setMessages] = useState(SEED_MESSAGES)
+  const [sessions, setSessions] = useState(INITIAL_SESSIONS)
+  const [activeSessionId, setActiveSessionId] = useState('session-1')
   const [isTyping, setIsTyping] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [isGlobalDragging, setIsGlobalDragging] = useState(false)
 
-  const handleSend = useCallback(({ text, images }) => {
-    if (!text.trim() && images.length === 0) return
+  // Current active conversation
+  const activeSession =
+    sessions.find((s) => s.id === activeSessionId) || sessions[0]
+  const currentMessages = activeSession ? activeSession.messages : []
 
-    /* User message */
-    const userMsg = {
-      id: uid(),
-      role: 'user',
-      text: text.trim(),
-      images,            /* array of { dataUrl, name } */
-      timestamp: new Date(),
-    }
-    setMessages(prev => [...prev, userMsg])
-
-    /* Route based on whether images are attached */
-    if (images.length > 0 && text.trim()) {
-      /* Image + text: use multimodal RAG */
-      setIsTyping(true)
-
-      /* Use only the first image for /analyze */
-      analyzeImage(images[0], text.trim())
-        .then(result => {
-          const botMsg = {
-            id: uid(),
-            role: 'assistant',
-            text: result.answer || 'No answer received',
-            images: [],
-            timestamp: new Date(),
-            /* Store visual description and sources from multimodal RAG */
-            visualDescription: result.visual_description,
-            sources: result.sources || [],
-          }
-          setMessages(prev => [...prev, botMsg])
-        })
-        .catch(error => {
-          const errorMsg = {
-            id: uid(),
-            role: 'assistant',
-            text: error.message || 'Unable to connect to the RAG backend. Please make sure the FastAPI server is running.',
-            images: [],
-            timestamp: new Date(),
-            isError: true,
-          }
-          setMessages(prev => [...prev, errorMsg])
-        })
-        .finally(() => {
-          setIsTyping(false)
-        })
-    } else if (text.trim()) {
-      /* Text only: use existing /ask endpoint */
-      setIsTyping(true)
-
-      askQuestion(text.trim())
-        .then(result => {
-          const botMsg = {
-            id: uid(),
-            role: 'assistant',
-            text: result.answer || 'No answer received',
-            images: [],
-            timestamp: new Date(),
-            /* Store sources from text-only RAG */
-            sources: result.sources || [],
-          }
-          setMessages(prev => [...prev, botMsg])
-        })
-        .catch(error => {
-          const errorMsg = {
-            id: uid(),
-            role: 'assistant',
-            text: error.message || 'Unable to connect to the RAG backend. Please make sure the FastAPI server is running.',
-            images: [],
-            timestamp: new Date(),
-            isError: true,
-          }
-          setMessages(prev => [...prev, errorMsg])
-        })
-        .finally(() => {
-          setIsTyping(false)
-        })
-    } else if (images.length > 0) {
-      /* Images without text: show prompt */
-      const botMsg = {
-        id: uid(),
-        role: 'assistant',
-        text: `I can see ${images.length} image${images.length > 1 ? 's' : ''} you attached. Please add a question about the image to get started!`,
-        images: [],
-        timestamp: new Date(),
+  // Auto-collapse sidebar on smaller screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false)
+      } else {
+        setSidebarOpen(true)
       }
-      setMessages(prev => [...prev, botMsg])
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Create a new empty chat session
+  const handleNewChat = useCallback(() => {
+    const newSession = {
+      id: uid('session'),
+      title: 'New Conversation',
+      group: 'today',
+      messages: [],
+    }
+    setSessions((prev) => [newSession, ...prev])
+    setActiveSessionId(newSession.id)
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false)
     }
   }, [])
 
+  // Select existing session
+  const handleSelectSession = useCallback((sessionId) => {
+    setActiveSessionId(sessionId)
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false)
+    }
+  }, [])
+
+  // Delete a session
+  const handleDeleteSession = useCallback(
+    (sessionId) => {
+      setSessions((prev) => {
+        const next = prev.filter((s) => s.id !== sessionId)
+        if (next.length === 0) {
+          const fresh = {
+            id: uid('session'),
+            title: 'New Conversation',
+            group: 'today',
+            messages: [],
+          }
+          return [fresh]
+        }
+        return next
+      })
+      if (activeSessionId === sessionId) {
+        const remaining = sessions.filter((s) => s.id !== sessionId)
+        if (remaining.length > 0) {
+          setActiveSessionId(remaining[0].id)
+        }
+      }
+    },
+    [activeSessionId, sessions]
+  )
+
+  // Clear current active conversation
+  const handleClearChat = useCallback(() => {
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === activeSessionId ? { ...s, messages: [] } : s
+      )
+    )
+  }, [activeSessionId])
+
+  // Export current chat transcript as markdown file
+  const handleExportChat = useCallback(() => {
+    const activeSession =
+      sessions.find((s) => s.id === activeSessionId) || sessions[0]
+    const messagesToExport = activeSession ? activeSession.messages : []
+    
+    if (messagesToExport.length === 0) return
+    const transcript = messagesToExport
+      .map(
+        (m) =>
+          `### ${m.role === 'user' ? 'User' : 'SpaceMinds AI'} (${new Date(m.timestamp).toLocaleTimeString()})\n\n${m.text}\n${m.images?.length ? `\n*[Attached ${m.images.length} image(s)]*\n` : ''}`
+      )
+      .join('\n\n---\n\n')
+
+    const blob = new Blob([transcript], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `SpaceMinds-Transcript-${new Date().toISOString().slice(0, 10)}.md`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [activeSessionId, sessions])
+
+  // Send a message
+  const handleSend = useCallback(
+    ({ text, images }) => {
+      if (!text.trim() && images.length === 0) return
+
+      const userMsg = {
+        id: uid(),
+        role: 'user',
+        text: text.trim(),
+        images,
+        timestamp: new Date(),
+      }
+
+      // Update current session title if it was "New Conversation"
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (s.id === activeSessionId) {
+            const isFirst = s.messages.length === 0
+            const updatedTitle =
+              isFirst && text.trim()
+                ? text.trim().slice(0, 30) + (text.trim().length > 30 ? '...' : '')
+                : isFirst && images.length > 0
+                ? `Image Analysis (${images.length} files)`
+                : s.title
+
+            return {
+              ...s,
+              title: updatedTitle,
+              messages: [...s.messages, userMsg],
+            }
+          }
+          return s
+        })
+      )
+
+      // Fallback assistant response when no backend API is integrated
+      setIsTyping(true)
+      setTimeout(() => {
+        const botMsg = {
+          id: uid(),
+          role: 'assistant',
+          text: FALLBACK_NO_BACKEND_RESPONSE,
+          images: [],
+          timestamp: new Date(),
+        }
+
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === activeSessionId
+              ? { ...s, messages: [...s.messages, botMsg] }
+              : s
+          )
+        )
+        setIsTyping(false)
+      }, 800)
+    },
+    [activeSessionId]
+  )
+
+  // Regenerate last assistant response fallback
+  const handleRegenerate = useCallback(() => {
+    setIsTyping(true)
+    setTimeout(() => {
+      const refreshedMsg = {
+        id: uid(),
+        role: 'assistant',
+        text: FALLBACK_NO_BACKEND_RESPONSE,
+        images: [],
+        timestamp: new Date(),
+      }
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === activeSessionId
+            ? { ...s, messages: [...s.messages.slice(0, -1), refreshedMsg] }
+            : s
+        )
+      )
+      setIsTyping(false)
+    }, 600)
+  }, [activeSessionId])
+
+  // Drag overlay listeners
+  const handleWindowDragEnter = (e) => {
+    e.preventDefault()
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsGlobalDragging(true)
+    }
+  }
+
+  const handleWindowDragLeave = (e) => {
+    e.preventDefault()
+    if (
+      e.clientY <= 0 ||
+      e.clientX <= 0 ||
+      e.clientX >= window.innerWidth ||
+      e.clientY >= window.innerHeight
+    ) {
+      setIsGlobalDragging(false)
+    }
+  }
+
+
   return (
-    <div className="app-shell">
-      {/* ── Header ── */}
-      <header className="app-header">
-        <div className="app-header__icon" aria-hidden="true">✦</div>
-        <div>
-          <div className="app-header__title">SpaceMinds</div>
-          <div className="app-header__subtitle">AI Assistant</div>
-        </div>
-        <div className="app-header__status">
-          <span className="status-dot" aria-hidden="true" />
-          Online
-        </div>
-      </header>
+    <div
+      className="app-container"
+      onDragEnter={handleWindowDragEnter}
+      onDragLeave={handleWindowDragLeave}
+    >
+      {/* ── Ambient Animated Drifting Green Blobs ── */}
+      <BackgroundBlobs />
 
-      {/* ── Chat history ── */}
-      <ChatWindow messages={messages} isTyping={isTyping} />
+      {/* ── Mouse-following Green Spotlight Glow Effect ── */}
+      <GlowCursor />
 
-      {/* ── Input bar ── */}
-      <InputBar onSend={handleSend} disabled={isTyping} />
+      {/* ── Global File Drag Drop Overlay ── */}
+      {isGlobalDragging && (
+        <div className="global-drag-overlay">
+          <div className="global-drag-icon">
+            <ImageIcon size={42} />
+          </div>
+          <div className="global-drag-text">Drop images here to attach</div>
+          <div className="global-drag-subtext">Supports PNG, JPG, WebP, GIF up to 6 images</div>
+        </div>
+      )}
+
+      {/* ── Left Navigation Sidebar (Claude / ChatGPT Style) ── */}
+      <Sidebar
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        onSelectSession={handleSelectSession}
+        onNewChat={handleNewChat}
+        onDeleteSession={handleDeleteSession}
+        isOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+      />
+
+      {/* ── Main Chat Area ── */}
+      <div className="main-chat-panel">
+        {/* Header with Model Picker and Sidebar Trigger */}
+        <ChatHeader
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          sidebarOpen={sidebarOpen}
+          onClearChat={handleClearChat}
+          onExportChat={handleExportChat}
+          messageCount={currentMessages.length}
+        />
+
+        {/* Scrollable Conversation Canvas / Empty State */}
+        <ChatWindow
+          messages={currentMessages}
+          isTyping={isTyping}
+          onSelectPrompt={(prompt) => handleSend({ text: prompt, images: [] })}
+          onRegenerate={handleRegenerate}
+        />
+
+        {/* Bottom Floating Glass Input Bar */}
+        <InputBar onSend={handleSend} disabled={isTyping} />
+      </div>
     </div>
   )
 }

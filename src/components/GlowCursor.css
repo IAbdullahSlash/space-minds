@@ -1,0 +1,60 @@
+.glow-cursor-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+  transition: opacity 0.5s ease;
+}
+
+.glow-cursor-overlay--hidden {
+  opacity: 0;
+}
+
+.glow-cursor-spotlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 580px;
+  height: 580px;
+  margin-top: -290px;
+  margin-left: -290px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(52, 211, 153, 0.13) 0%,
+    rgba(16, 185, 129, 0.07) 35%,
+    rgba(6, 78, 59, 0.03) 65%,
+    transparent 80%
+  );
+  filter: blur(10px);
+  will-change: transform;
+  mix-blend-mode: screen;
+}
+
+/* Secondary softer wide aura */
+.glow-cursor-aura {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 900px;
+  height: 900px;
+  margin-top: -450px;
+  margin-left: -450px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(52, 211, 153, 0.05) 0%,
+    rgba(10, 38, 28, 0.03) 50%,
+    transparent 75%
+  );
+  filter: blur(25px);
+  will-change: transform;
+  mix-blend-mode: screen;
+}
+
+@media (pointer: coarse) {
+  .glow-cursor-overlay {
+    display: none;
+  }
+}
