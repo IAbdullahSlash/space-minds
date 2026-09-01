@@ -33,6 +33,7 @@ __pycache__/
 
 # RAG generated files
 backend/demo_data/chroma_db/
+backend/demo_data/chroma_db_expanded/
 
 # Local dataset
 BigEarthNet.txt.parquet

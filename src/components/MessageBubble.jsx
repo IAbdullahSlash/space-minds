@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react'
 import './MessageBubble.css'
+import ReferenceScenesSection from './ReferenceScenesSection'
 
 /**
  * Format timestamp nicely
@@ -135,7 +136,7 @@ export default function MessageBubble({ message, onRegenerate }) {
   const [reaction, setReaction] = useState(null) // 'like' | 'dislike' | null
   const [isSpeaking, setIsSpeaking] = useState(false)
 
-  const { role, text, images, timestamp } = message
+  const { role, text, images, timestamp, visualDescription, similarScenes } = message
   const isUser = role === 'user'
 
   const handleCopyMessage = () => {
@@ -176,7 +177,23 @@ export default function MessageBubble({ message, onRegenerate }) {
           </div>
 
           <div className={`message-bubble message-bubble--${role}`}>
+            {/* Main Answer Text */}
             <FormattedMessageText text={text} />
+
+            {/* Visual Analysis Section */}
+            {!isUser && visualDescription && (
+              <div className="visual-analysis-section">
+                <h4 className="visual-analysis-title">Visual Analysis</h4>
+                <div className="visual-analysis-content">
+                  <FormattedMessageText text={visualDescription} />
+                </div>
+              </div>
+            )}
+
+            {/* Similar Reference Scenes Section */}
+            {!isUser && similarScenes && similarScenes.length > 0 && (
+              <ReferenceScenesSection scenes={similarScenes} />
+            )}
 
             {/* Uploaded Images */}
             {images && images.length > 0 && (

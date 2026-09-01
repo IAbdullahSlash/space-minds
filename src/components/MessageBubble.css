@@ -310,3 +310,43 @@
     max-height: 140px;
   }
 }
+
+/* ── Visual Analysis Section ── */
+.visual-analysis-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.visual-analysis-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.visual-analysis-title::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-mint);
+}
+
+.visual-analysis-content .message-text {
+  margin: 0;
+}
+
+.visual-analysis-content .message-text p {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin-bottom: 0.5rem;
+}
+
+.visual-analysis-content .message-text p:last-child {
+  margin-bottom: 0;
+}
+

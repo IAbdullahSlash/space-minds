@@ -168,13 +168,95 @@ export default function App() {
         })
       )
 
-      // Fallback assistant response when no backend API is integrated
+      // Fetch response from backend
       setIsTyping(true)
-      setTimeout(() => {
-        const botMsg = {
+      
+      const fetchResponse = async () => {
+        try {
+          let apiResponse
+          
+          // Route to appropriate endpoint
+          if (images.length > 0) {
+            // Image analysis: use /analyze endpoint with first image
+            apiResponse = await analyzeImage(images[0], text.trim())
+          } else {
+            // Text-only: use /ask endpoint
+            apiResponse = await askQuestion(text.trim())
+          }
+
+          // Create assistant message with response data
+          const botMsg = {
+            id: uid(),
+            role: 'assistant',
+            text: apiResponse.answer || 'No response received',
+            visualDescription: apiResponse.visual_description || null,
+            similarScenes: apiResponse.similar_scenes || [],
+            images: [],
+            timestamp: new Date(),
+          }
+
+          setSessions((prev) =>
+            prev.map((s) =>
+              s.id === activeSessionId
+                ? { ...s, messages: [...s.messages, botMsg] }
+                : s
+            )
+          )
+        } catch (error) {
+          console.error('Backend error:', error)
+          const errorMsg = {
+            id: uid(),
+            role: 'assistant',
+            text: `Error: ${error.message}`,
+            images: [],
+            timestamp: new Date(),
+          }
+
+          setSessions((prev) =>
+            prev.map((s) =>
+              s.id === activeSessionId
+                ? { ...s, messages: [...s.messages, errorMsg] }
+                : s
+            )
+          )
+        } finally {
+          setIsTyping(false)
+        }
+      }
+
+      fetchResponse()
+    },
+    [activeSessionId]
+  )
+
+  // Regenerate last assistant response
+  const handleRegenerate = useCallback(() => {
+    // Find the last user message to regenerate response from
+    const lastUserMsg = [...currentMessages]
+      .reverse()
+      .find((m) => m.role === 'user')
+    
+    if (!lastUserMsg) return
+
+    setIsTyping(true)
+
+    const fetchResponse = async () => {
+      try {
+        let apiResponse
+
+        // Route to appropriate endpoint based on whether user message had images
+        if (lastUserMsg.images && lastUserMsg.images.length > 0) {
+          apiResponse = await analyzeImage(lastUserMsg.images[0], lastUserMsg.text)
+        } else {
+          apiResponse = await askQuestion(lastUserMsg.text)
+        }
+
+        const refreshedMsg = {
           id: uid(),
           role: 'assistant',
-          text: FALLBACK_NO_BACKEND_RESPONSE,
+          text: apiResponse.answer || 'No response received',
+          visualDescription: apiResponse.visual_description || null,
+          similarScenes: apiResponse.similar_scenes || [],
           images: [],
           timestamp: new Date(),
         }
@@ -182,37 +264,34 @@ export default function App() {
         setSessions((prev) =>
           prev.map((s) =>
             s.id === activeSessionId
-              ? { ...s, messages: [...s.messages, botMsg] }
+              ? { ...s, messages: [...s.messages.slice(0, -1), refreshedMsg] }
               : s
           )
         )
-        setIsTyping(false)
-      }, 800)
-    },
-    [activeSessionId]
-  )
+      } catch (error) {
+        console.error('Regenerate error:', error)
+        const errorMsg = {
+          id: uid(),
+          role: 'assistant',
+          text: `Error: ${error.message}`,
+          images: [],
+          timestamp: new Date(),
+        }
 
-  // Regenerate last assistant response fallback
-  const handleRegenerate = useCallback(() => {
-    setIsTyping(true)
-    setTimeout(() => {
-      const refreshedMsg = {
-        id: uid(),
-        role: 'assistant',
-        text: FALLBACK_NO_BACKEND_RESPONSE,
-        images: [],
-        timestamp: new Date(),
-      }
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === activeSessionId
-            ? { ...s, messages: [...s.messages.slice(0, -1), refreshedMsg] }
-            : s
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === activeSessionId
+              ? { ...s, messages: [...s.messages.slice(0, -1), errorMsg] }
+              : s
+          )
         )
-      )
-      setIsTyping(false)
-    }, 600)
-  }, [activeSessionId])
+      } finally {
+        setIsTyping(false)
+      }
+    }
+
+    fetchResponse()
+  }, [activeSessionId, currentMessages])
 
   // Drag overlay listeners
   const handleWindowDragEnter = (e) => {

@@ -37,11 +37,11 @@ try:
     
     # Verify expanded collection has documents
     expanded_count = collection_expanded.count()
-    print(f"✓ Expanded collection loaded: {expanded_count} documents")
+    print(f"[OK] Expanded collection loaded: {expanded_count} documents")
     if expanded_count < 4500:
-        print(f"⚠ Warning: Expanded collection has only {expanded_count} documents (expected ~5000)")
+        print(f"[WARNING] Expanded collection has only {expanded_count} documents (expected ~5000)")
 except Exception as e:
-    print(f"✗ Error loading expanded collection: {e}")
+    print(f"[ERROR] Error loading expanded collection: {e}")
     print(f"  Path checked: {DB_PATH_EXPANDED}")
     print(f"  Collection name: {COLLECTION_NAME_EXPANDED}")
     collection_expanded = None
