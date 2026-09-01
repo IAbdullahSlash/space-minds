@@ -11,9 +11,9 @@ git clone https://github.com/IAbdullahSlash/space-minds.git
 cd space-minds
 ```
 
-### 2. Switch to the `IqraKhan` branch
+### 2. Switch to the `SpaceMinds` branch
 ```bash
-git checkout IqraKhan
+git checkout SpaceMinds
 ```
 
 ### 3. Install dependencies

@@ -54,7 +54,7 @@ export default function ChatWindow({
       ))}
 
       {isTyping && (
-        <div className="typing-row" aria-label="SpaceMinds is thinking">
+        <div className="typing-row" aria-label="SatQuery is thinking">
           <div className="typing-avatar">
             <Sparkles size={15} />
           </div>

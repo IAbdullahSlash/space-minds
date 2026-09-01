@@ -15,13 +15,13 @@ import './ChatHeader.css'
 const AVAILABLE_MODELS = [
   {
     id: 'emerald-4',
-    name: 'SpaceMinds 4.0 Emerald',
+    name: 'SatQuery 4.0 Emerald',
     desc: 'Most capable model for multimodal reasoning & vision',
     icon: Sparkles,
   },
   {
     id: 'flash-2',
-    name: 'SpaceMinds Flash 2.5',
+    name: 'SatQuery Flash 2.5',
     desc: 'Lightweight & ultra-fast for quick queries',
     icon: Zap,
   },

@@ -10,27 +10,27 @@ import './EmptyState.css'
 
 const SUGGESTIONS = [
   {
-    title: 'Multimodal Vision & Image Analysis',
-    desc: 'Attach screenshots or diagrams to inspect architecture & bugs',
-    prompt: 'Can you analyze the structure and visual hierarchy of an image if I attach it?',
+    title: 'Remote Sensing & Satellite Analysis',
+    desc: 'Analyze satellite imagery and geospatial data for Earth observation insights',
+    prompt: 'Can you analyze satellite imagery and extract insights about geographical features and changes?',
     icon: ImageIcon,
   },
   {
-    title: 'Modern React Architecture',
-    desc: 'Design high-performance scalable frontends with custom hooks',
-    prompt: 'How do I architect a high-performance React application with clean state separation?',
+    title: 'Land Cover & Vegetation Analysis',
+    desc: 'Monitor forest coverage, crop health, and ecosystem changes with satellite data',
+    prompt: 'How can I use satellite imagery to analyze vegetation patterns and land cover changes?',
     icon: Code2,
   },
   {
-    title: 'UI Design System & Tokens',
-    desc: 'Craft dark emerald glassmorphism themes with smooth micro-interactions',
-    prompt: 'Explain best practices for designing dark-mode design token systems with fluid typography.',
+    title: 'Climate & Environmental Monitoring',
+    desc: 'Track atmospheric changes, weather patterns, and environmental indicators from space',
+    prompt: 'Explain how satellite data can be used to monitor climate change and environmental conditions.',
     icon: Lightbulb,
   },
   {
-    title: 'Algorithmic Problem Solving',
-    desc: 'Optimize complex data pipelines and asynchronous streams',
-    prompt: 'Explain how to implement an efficient debounced requestAnimationFrame loop in JavaScript.',
+    title: 'Geographical Problem Solving',
+    desc: 'Analyze complex geographical data and spatial analysis workflows',
+    prompt: 'How do I analyze geographical data patterns and solve complex spatial problems?',
     icon: Compass,
   },
 ]
@@ -43,7 +43,7 @@ export default function EmptyState({ onSelectPrompt }) {
     <div className="empty-state-container">
       <div className="empty-state-badge">
         <Sparkles size={13} />
-        <span>SpaceMinds 4.0 Emerald Edition</span>
+        <span>SatQuery 4.0 Emerald Edition</span>
       </div>
 
       <div className="empty-state-icon-wrap">
@@ -51,10 +51,10 @@ export default function EmptyState({ onSelectPrompt }) {
       </div>
 
       <h1 className="empty-state-title">
-        Where will your curiosity <span>take you?</span>
+        TAKE A LOOK FROM THE <span>SPACE</span>
       </h1>
       <p className="empty-state-subtitle">
-        Ask complex engineering questions, brainstorm design systems, or attach images for deep visual analysis.
+        Explore our planet earth with a closeup look.
       </p>
 
       <div className="empty-suggestions-grid">

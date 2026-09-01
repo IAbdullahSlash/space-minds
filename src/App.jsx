@@ -128,7 +128,7 @@ export default function App() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `SpaceMinds-Transcript-${new Date().toISOString().slice(0, 10)}.md`
+    a.download = `SatQuery-Transcript-${new Date().toISOString().slice(0, 10)}.md`
     a.click()
     URL.revokeObjectURL(url)
   }, [activeSessionId, sessions])

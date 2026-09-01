@@ -52,7 +52,7 @@ export default function Sidebar({
             <div className="sidebar-brand-icon">
               <Sparkles size={16} strokeWidth={2.5} />
             </div>
-            <span>SpaceMinds</span>
+            <span>SatQuery</span>
           </div>
           <button
             className="sidebar-collapse-btn"
@@ -165,9 +165,9 @@ export default function Sidebar({
         <div className="sidebar-footer">
           <div className="sidebar-user-card" title="Account settings">
             <div className="sidebar-user-info">
-              <div className="sidebar-user-avatar">IK</div>
+              <div className="sidebar-user-avatar">SM</div>
               <div className="sidebar-user-text">
-                <span className="sidebar-user-name">Iqra Khan</span>
+                <span className="sidebar-user-name">SpaceMinds</span>
                 <span className="sidebar-user-tier">
                   <Flame size={11} fill="currentColor" /> Emerald Pro
                 </span>

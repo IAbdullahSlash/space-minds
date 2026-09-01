@@ -174,7 +174,7 @@ export default function InputBar({ onSend, disabled }) {
             placeholder={
               images.length > 0
                 ? 'Add context or instructions for attached image(s)...'
-                : 'Ask SpaceMinds anything... (Shift+Enter for newline)'
+                : 'Ask SatQuery anything... (Shift+Enter for newline)'
             }
             rows={1}
             disabled={disabled}
@@ -210,7 +210,7 @@ export default function InputBar({ onSend, disabled }) {
       <div className="input-footer-bar">
         <div className="input-footer-hint">
           <Sparkles size={11} color="var(--accent-mint)" />
-          <span>SpaceMinds can analyze code, text & images.</span>
+          <span>SatQuery can analyze code, text & images.</span>
           <span className="desktop-only">• Drag & drop images directly.</span>
         </div>
         {text.length > 0 && <span className="input-char-count">{text.length} chars</span>}

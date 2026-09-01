@@ -171,7 +171,7 @@ export default function MessageBubble({ message, onRegenerate }) {
         {/* Content Body */}
         <div className="message-content-wrap">
           <div className="message-header-info">
-            <span className="message-sender-name">{isUser ? 'You' : 'SpaceMinds AI'}</span>
+            <span className="message-sender-name">{isUser ? 'You' : 'SatQuery AI'}</span>
             <span>•</span>
             <span>{formatTime(timestamp)}</span>
           </div>
