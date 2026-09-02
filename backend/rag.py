@@ -175,7 +175,7 @@ Give a concise and clear answer.
 """
 
     response = gemini_client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.5-flash",
         contents=prompt
     )
 
@@ -212,7 +212,7 @@ Rules:
 """
 
     response = gemini_client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.5-flash",
         contents=[
             prompt,
             types.Part.from_bytes(
@@ -228,6 +228,110 @@ Rules:
     return {
         "answer": analysis_text,
         "visual_description": analysis_text
+    }
+
+def analyze_image_pair(
+    before_image_bytes,
+    before_image_mime_type,
+    after_image_bytes,
+    after_image_mime_type,
+    question
+):
+    """
+    Phase 4B.1:
+    Dual image Vision analysis for temporal satellite comparison.
+
+    Analyzes two satellite images independently and then compares
+    the resulting visual descriptions.
+
+    Image 1 = earlier observation
+    Image 2 = later observation
+    """
+
+    # Analyze the earlier image
+    before_result = analyze_image(
+        before_image_bytes,
+        before_image_mime_type,
+        "Describe this satellite image carefully for later temporal comparison."
+    )
+
+    before_description = before_result["visual_description"]
+
+    # Analyze the later image
+    after_result = analyze_image(
+        after_image_bytes,
+        after_image_mime_type,
+        "Describe this satellite image carefully for later temporal comparison."
+    )
+
+    after_description = after_result["visual_description"]
+
+    comparison_prompt = f"""
+You are a remote sensing expert performing temporal satellite image analysis.
+
+You have two observations of a geographic scene.
+
+EARLIER IMAGE ANALYSIS:
+{before_description}
+
+LATER IMAGE ANALYSIS:
+{after_description}
+
+USER QUESTION:
+{question}
+
+Your task is to compare the two observations.
+
+Focus specifically on changes between the earlier and later observations.
+
+Analyze:
+
+1. Land cover changes
+2. Vegetation changes
+3. Agricultural changes
+4. Forest changes
+5. Water related changes
+6. Artificial or built up surface changes
+7. Spatial expansion or reduction of visible regions
+8. Any other meaningful geographic change
+
+IMPORTANT RULES:
+
+The earlier image represents the BEFORE state.
+
+The later image represents the AFTER state.
+
+Only describe a change when there is evidence supporting it in both observations.
+
+Do not invent changes.
+
+Do not assume that differences caused by lighting, season, image quality or atmospheric conditions are real land cover changes.
+
+If the evidence is insufficient, explicitly say that the change cannot be confidently determined.
+
+Clearly distinguish between:
+
+Observed change
+
+Possible change
+
+No clear change
+
+Return a concise but useful temporal analysis.
+
+USER QUESTION:
+{question}
+"""
+
+    response = gemini_client.models.generate_content(
+        model="gemini-3.5-flash",
+        contents=comparison_prompt
+    )
+
+    return {
+        "answer": response.text,
+        "before_description": before_description,
+        "after_description": after_description
     }
 
 
@@ -314,7 +418,7 @@ ANSWER GENERATION:
 """
     
     response = gemini_client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.5-flash",
         contents=synthesis_prompt
     )
     
