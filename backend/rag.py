@@ -52,6 +52,131 @@ gemini_client = genai.Client(
 )
 
 
+CHANGE_CATEGORIES = {
+    "land_cover", "vegetation", "agriculture", "forest", "water",
+    "built_up", "spatial", "other"
+}
+CHANGE_DIRECTIONS = {
+    "increase", "decrease", "appearance", "disappearance", "expansion",
+    "contraction", "no_clear_change"
+}
+CONFIDENCE_LEVELS = {"high", "medium", "low"}
+
+TEMPORAL_RESPONSE_SCHEMA = types.Schema(
+    type=types.Type.OBJECT,
+    properties={
+        "answer": types.Schema(type=types.Type.STRING),
+        "change_detected": types.Schema(type=types.Type.BOOLEAN),
+        "changes": types.Schema(
+            type=types.Type.ARRAY,
+            items=types.Schema(
+                type=types.Type.OBJECT,
+                properties={
+                    "category": types.Schema(
+                        type=types.Type.STRING,
+                        enum=sorted(CHANGE_CATEGORIES)
+                    ),
+                    "direction": types.Schema(
+                        type=types.Type.STRING,
+                        enum=sorted(CHANGE_DIRECTIONS)
+                    ),
+                    "observed_change": types.Schema(type=types.Type.STRING),
+                    "possible_explanation": types.Schema(type=types.Type.STRING),
+                    "confidence": types.Schema(
+                        type=types.Type.STRING,
+                        enum=sorted(CONFIDENCE_LEVELS)
+                    ),
+                },
+                required=[
+                    "category", "direction", "observed_change",
+                    "possible_explanation", "confidence"
+                ]
+            )
+        ),
+        "environmental_considerations": types.Schema(type=types.Type.STRING),
+    },
+    required=[
+        "answer", "change_detected", "changes", "environmental_considerations"
+    ]
+)
+
+
+def normalize_temporal_analysis(parsed_response, response_text):
+    """Return a safe, validated temporal-analysis payload from Gemini JSON."""
+    if hasattr(parsed_response, "model_dump"):
+        parsed_response = parsed_response.model_dump()
+
+    fallback_answer = (
+        response_text.strip()
+        if isinstance(response_text, str) and response_text.strip()
+        else "The temporal analysis could not be structured safely."
+    )
+    fallback = {
+        "answer": fallback_answer,
+        "change_detected": False,
+        "changes": [],
+        "environmental_considerations": (
+            "Environmental considerations could not be determined from the "
+            "structured model response."
+        )
+    }
+
+    if not isinstance(parsed_response, dict):
+        return fallback
+
+    answer = parsed_response.get("answer")
+    if not isinstance(answer, str) or not answer.strip():
+        answer = fallback_answer
+
+    environmental_considerations = parsed_response.get("environmental_considerations")
+    if not isinstance(environmental_considerations, str):
+        environmental_considerations = fallback["environmental_considerations"]
+
+    valid_changes = []
+    raw_changes = parsed_response.get("changes")
+    if isinstance(raw_changes, list):
+        for change in raw_changes:
+            if not isinstance(change, dict):
+                continue
+
+            category = change.get("category")
+            direction = change.get("direction")
+            confidence = change.get("confidence")
+            observed_change = change.get("observed_change")
+            possible_explanation = change.get("possible_explanation")
+
+            if (
+                category not in CHANGE_CATEGORIES
+                or direction not in CHANGE_DIRECTIONS
+                or confidence not in CONFIDENCE_LEVELS
+                or not isinstance(observed_change, str)
+                or not isinstance(possible_explanation, str)
+            ):
+                continue
+
+            valid_changes.append({
+                "category": category,
+                "direction": direction,
+                "observed_change": observed_change,
+                "possible_explanation": possible_explanation,
+                "confidence": confidence
+            })
+
+    # A false value always means no meaningful geographic changes are returned.
+    change_detected = parsed_response.get("change_detected") is True
+    if not change_detected:
+        valid_changes = []
+    elif not valid_changes:
+        change_detected = False
+
+    return {
+        "answer": answer,
+        "change_detected": change_detected,
+        "changes": valid_changes,
+        "environmental_considerations": environmental_considerations
+    }
+
+
 def retrieve(query, top_k=5):
 
     query_embedding = embedding_model.encode(query).tolist()
@@ -271,6 +396,35 @@ def analyze_image_pair(
 
     after_description = after_result["visual_description"]
 
+    # Use the two uploaded-image descriptions to find contextual BigEarthNet
+    # examples. These references support interpretation only; they are not
+    # evidence about the user's particular geographic location or change.
+    temporal_rag_query = f"""
+Satellite temporal comparison reference query.
+
+Earlier scene characteristics:
+{before_description}
+
+Later scene characteristics:
+{after_description}
+
+Find reference scenes relevant to land cover, vegetation, agriculture,
+forest, water, built-up surfaces, season, environmental context, and visible
+geographic patterns represented across these observations.
+"""
+    similar_scenes = retrieve_expanded(temporal_rag_query, top_k=3)
+
+    reference_context = "\n\n".join(
+        f"""BigEarthNet Reference Scene {i + 1} (contextual example only):
+ID: {scene['id']}
+Similarity Score: {scene['distance']:.4f}
+Metadata: {scene['metadata']}
+
+Description:
+{scene['text']}"""
+        for i, scene in enumerate(similar_scenes)
+    )
+
     # Perform temporal reasoning
     comparison_prompt = f"""
 You are an expert remote sensing analyst performing temporal
@@ -283,6 +437,9 @@ EARLIER OBSERVATION:
 
 LATER OBSERVATION:
 {after_description}
+
+BIGEARTHNET REFERENCE CONTEXT:
+{reference_context}
 
 USER QUESTION:
 {question}
@@ -325,6 +482,21 @@ IMPORTANT RULES:
 Only report changes that are supported by the available
 evidence from both observations.
 
+The uploaded earlier and later observations are the PRIMARY
+evidence for this analysis.
+
+The BigEarthNet reference scenes are SUPPORTING CONTEXTUAL
+examples only. They may help interpret land cover, seasonal
+appearance, environmental context, and geographic patterns.
+
+Do not claim that a retrieved BigEarthNet reference is the
+same geographic location as the uploaded images unless that
+has been independently established.
+
+Do not use a BigEarthNet reference as proof that a change
+occurred in the uploaded images. Ground every claim about
+change in the earlier and later observations themselves.
+
 Do not invent geographic changes.
 
 Do not present assumptions as confirmed facts.
@@ -358,70 +530,50 @@ No clear change
 
 The final response must answer the user's question directly.
 
-Use this structure:
+Return a JSON object that exactly follows the provided response schema.
 
-TEMPORAL CHANGE ANALYSIS
+STRUCTURED OUTPUT RULES:
 
-Overall assessment:
-Provide a concise summary of the most important changes.
+- answer: A human-readable final answer to the user's question, grounded in
+  the uploaded observations.
+- change_detected: true only when one or more meaningful geographic changes
+  are supported by the earlier and later observations.
+- changes: Use an empty list when change_detected is false. Otherwise include
+  only meaningful changes.
+- category: one of land_cover, vegetation, agriculture, forest, water,
+  built_up, spatial, or other.
+- direction: one of increase, decrease, appearance, disappearance, expansion,
+  contraction, or no_clear_change.
+- confidence: one of high, medium, or low.
+- environmental_considerations: Explain whether season, lighting, atmospheric
+  conditions, cloud cover, image quality, or viewing conditions may influence
+  the comparison.
 
-Observed changes:
-
-1. Category:
-[category]
-
-Observed change:
-[what changed]
-
-Change direction:
-[increase, decrease, appearance, disappearance,
-expansion, contraction or no clear change]
-
-Possible interpretation:
-[potential explanation]
-
-Confidence:
-[High, Medium or Low]
-
-2. Category:
-[category]
-
-Observed change:
-[what changed]
-
-Change direction:
-[increase, decrease, appearance, disappearance,
-expansion, contraction or no clear change]
-
-Possible interpretation:
-[potential explanation]
-
-Confidence:
-[High, Medium or Low]
-
-Continue only for meaningful changes.
-
-Environmental considerations:
-Explain whether season, lighting, atmospheric conditions,
-cloud cover, image quality or other factors could influence
-the observed differences.
-
-Final answer:
-Answer the user's question directly using the evidence
-from the comparison.
-
-Do not claim certainty when the evidence does not support it.
-"""
+Do not claim certainty when the evidence does not support it."""
 
     response = gemini_client.models.generate_content(
         model="gemini-3.5-flash",
-        contents=comparison_prompt
+        contents=comparison_prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=TEMPORAL_RESPONSE_SCHEMA
+        )
+    )
+    temporal_analysis = normalize_temporal_analysis(
+        getattr(response, "parsed", None),
+        getattr(response, "text", "")
     )
 
     return {
-        "answer": response.text,
+        "answer": temporal_analysis["answer"],
         "before_description": before_description,
-        "after_description": after_description
+        "after_description": after_description,
+        "similar_scenes": similar_scenes,
+        "change_detected": temporal_analysis["change_detected"],
+        "changes": temporal_analysis["changes"],
+        "environmental_considerations": temporal_analysis[
+            "environmental_considerations"
+        ]
     }
 
 

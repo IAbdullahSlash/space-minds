@@ -22,43 +22,99 @@ const formatTime = (date) => {
 }
 
 /**
- * Parses text into rich formatted segments (paragraphs, inline code, code blocks)
+ * Parses the small Markdown subset used by model responses.
  */
 function FormattedMessageText({ text }) {
   if (!text) return null
 
-  // Check for code block formatting ```lang ... ```
-  if (text.includes('```')) {
-    const parts = text.split(/(```[\s\S]*?```)/g)
-    return (
-      <div className="message-text">
-        {parts.map((part, idx) => {
-          if (part.startsWith('```') && part.endsWith('```')) {
-            const firstLineBreak = part.indexOf('\n')
-            const lang = firstLineBreak !== -1 ? part.slice(3, firstLineBreak).trim() : 'code'
-            const code = firstLineBreak !== -1 ? part.slice(firstLineBreak + 1, -3) : part.slice(3, -3)
-            return <CodeBlock key={idx} language={lang || 'javascript'} code={code} />
-          }
-          return <p key={idx}>{renderInlineFormatting(part)}</p>
-        })}
-      </div>
-    )
-  }
-
-  // Split by double newlines for paragraphs
-  const paragraphs = text.split('\n\n')
   return (
     <div className="message-text">
-      {paragraphs.map((para, i) => (
-        <p key={i}>{renderInlineFormatting(para)}</p>
-      ))}
+      {renderBlocks(text)}
     </div>
   )
 }
 
+function renderBlocks(text) {
+  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  const blocks = []
+  let paragraph = []
+  let list = []
+  let codeLines = null
+  let codeLanguage = ''
+
+  const flushParagraph = () => {
+    if (paragraph.length) {
+      blocks.push(<p key={`paragraph-${blocks.length}`}>{renderInlineFormatting(paragraph.join('\n'))}</p>)
+      paragraph = []
+    }
+  }
+
+  const flushList = () => {
+    if (list.length) {
+      const ordered = list[0].ordered
+      const ListTag = ordered ? 'ol' : 'ul'
+      blocks.push(
+        <ListTag key={`list-${blocks.length}`}>
+          {list.map((item, index) => <li key={index}>{renderInlineFormatting(item.text)}</li>)}
+        </ListTag>
+      )
+      list = []
+    }
+  }
+
+  lines.forEach((line) => {
+    const codeFence = line.match(/^```(.*)$/)
+    if (codeFence) {
+      if (codeLines) {
+        blocks.push(<CodeBlock key={`code-${blocks.length}`} language={codeLanguage || 'code'} code={codeLines.join('\n')} />)
+        codeLines = null
+        codeLanguage = ''
+      } else {
+        flushParagraph()
+        flushList()
+        codeLines = []
+        codeLanguage = codeFence[1].trim()
+      }
+      return
+    }
+
+    if (codeLines) {
+      codeLines.push(line)
+      return
+    }
+
+    const heading = line.match(/^(#{1,6})\s+(.+?)\s*#*$/)
+    const listItem = line.match(/^\s*([-*+]|\d+[.)])\s+(.+)$/)
+    if (heading) {
+      flushParagraph()
+      flushList()
+      const HeadingTag = `h${heading[1].length}`
+      blocks.push(<HeadingTag key={`heading-${blocks.length}`}>{renderInlineFormatting(heading[2])}</HeadingTag>)
+    } else if (listItem) {
+      flushParagraph()
+      const ordered = /^\d/.test(listItem[1])
+      if (list.length && list[0].ordered !== ordered) flushList()
+      list.push({ ordered, text: listItem[2] })
+    } else if (!line.trim()) {
+      flushParagraph()
+      flushList()
+    } else {
+      paragraph.push(line)
+    }
+  })
+
+  if (codeLines) {
+    blocks.push(<CodeBlock key={`code-${blocks.length}`} language={codeLanguage || 'code'} code={codeLines.join('\n')} />)
+  } else {
+    flushParagraph()
+    flushList()
+  }
+
+  return blocks
+}
+
 function renderInlineFormatting(str) {
-  // Simple bold and inline code parser
-  const tokens = str.split(/(`[^`]+`|\*\*[^*]+\*\*)/g)
+  const tokens = str.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_)/g)
   return tokens.map((token, i) => {
     if (token.startsWith('`') && token.endsWith('`')) {
       return (
@@ -69,6 +125,17 @@ function renderInlineFormatting(str) {
     }
     if (token.startsWith('**') && token.endsWith('**')) {
       return <strong key={i}>{token.slice(2, -2)}</strong>
+    }
+    if ((token.startsWith('*') && token.endsWith('*')) || (token.startsWith('_') && token.endsWith('_'))) {
+      return <em key={i}>{token.slice(1, -1)}</em>
+    }
+    if (token.includes('\n')) {
+      return token.split('\n').map((line, lineIndex) => (
+        <span key={`${i}-${lineIndex}`}>
+          {lineIndex > 0 && <br />}
+          {line}
+        </span>
+      ))
     }
     return token
   })

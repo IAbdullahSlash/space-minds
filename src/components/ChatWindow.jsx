@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Sparkles, ArrowDown } from 'lucide-react'
+import { useEffect, useRef } from 'react'
+import { Sparkles } from 'lucide-react'
 import './ChatWindow.css'
 import MessageBubble from './MessageBubble'
 import EmptyState from './EmptyState'
@@ -15,27 +15,11 @@ export default function ChatWindow({
 }) {
   const scrollRef = useRef(null)
   const bottomAnchorRef = useRef(null)
-  const [showScrollBottom, setShowScrollBottom] = useState(false)
 
   // Auto-scroll when new messages arrive or while typing
   useEffect(() => {
-    if (!showScrollBottom) {
-      bottomAnchorRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [messages, isTyping, showScrollBottom])
-
-  // Track scroll position to show/hide scroll to bottom button
-  const handleScroll = () => {
-    if (!scrollRef.current) return
-    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-    const isScrolledUp = scrollHeight - scrollTop - clientHeight > 180
-    setShowScrollBottom(isScrolledUp)
-  }
-
-  const scrollToBottom = () => {
     bottomAnchorRef.current?.scrollIntoView({ behavior: 'smooth' })
-    setShowScrollBottom(false)
-  }
+  }, [messages, isTyping])
 
   if (messages.length === 0) {
     return (
@@ -46,7 +30,7 @@ export default function ChatWindow({
   }
 
   return (
-    <main className="chat-window" ref={scrollRef} onScroll={handleScroll} role="log" aria-live="polite">
+    <main className="chat-window" ref={scrollRef} role="log" aria-live="polite">
       <div className="chat-time-divider">Conversation</div>
 
       {messages.map((msg) => (
@@ -68,12 +52,6 @@ export default function ChatWindow({
 
       <div ref={bottomAnchorRef} style={{ height: '1px' }} />
 
-      {showScrollBottom && (
-        <button className="scroll-bottom-pill" onClick={scrollToBottom} title="Scroll to bottom">
-          <ArrowDown size={14} />
-          <span>Latest message</span>
-        </button>
-      )}
     </main>
   )
 }

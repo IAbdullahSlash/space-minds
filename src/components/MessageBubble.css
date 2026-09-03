@@ -115,6 +115,45 @@
   margin-bottom: 0;
 }
 
+.message-text h1,
+.message-text h2,
+.message-text h3,
+.message-text h4,
+.message-text h5,
+.message-text h6 {
+  margin: 1rem 0 0.45rem;
+  color: var(--text-primary);
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.message-text h1 { font-size: 1.35rem; }
+.message-text h2 { font-size: 1.2rem; }
+.message-text h3 { font-size: 1.08rem; }
+.message-text h4,
+.message-text h5,
+.message-text h6 { font-size: 1rem; }
+
+.message-text h1:first-child,
+.message-text h2:first-child,
+.message-text h3:first-child,
+.message-text h4:first-child,
+.message-text h5:first-child,
+.message-text h6:first-child {
+  margin-top: 0;
+}
+
+.message-text ul,
+.message-text ol {
+  margin: 0.35rem 0 0.75rem;
+  padding-left: 1.35rem;
+}
+
+.message-text li {
+  padding-left: 0.2rem;
+  margin-bottom: 0.3rem;
+}
+
 .message-text strong {
   color: var(--text-primary);
   font-weight: 600;
