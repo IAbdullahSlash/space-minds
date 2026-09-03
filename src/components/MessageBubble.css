@@ -350,3 +350,70 @@
   margin-bottom: 0;
 }
 
+/* ── Temporal Analysis Section (Before/After) ── */
+.temporal-analysis-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.temporal-analysis-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.8rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.temporal-analysis-title::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-mint);
+}
+
+.temporal-analysis-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .temporal-analysis-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.temporal-analysis-card {
+  padding: 0.8rem;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.temporal-stage-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-mint);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 0.5rem 0;
+}
+
+.temporal-stage-content .message-text {
+  margin: 0;
+}
+
+.temporal-stage-content .message-text p {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin-bottom: 0.5rem;
+}
+
+.temporal-stage-content .message-text p:last-child {
+  margin-bottom: 0;
+}
+

@@ -6,11 +6,13 @@ import {
   Mic,
   MicOff,
   Sparkles,
+  Clock,
 } from 'lucide-react'
 import './InputBar.css'
 import ImagePreview from './ImagePreview'
 
 const MAX_IMAGES = 6
+const MAX_TEMPORAL_IMAGES = 2
 
 const readAsDataUrl = (file) =>
   new Promise((resolve, reject) => {
@@ -29,6 +31,7 @@ export default function InputBar({ onSend, disabled }) {
   const [webSearchActive, setWebSearchActive] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [analysisMode, setAnalysisMode] = useState('single') // 'single' | 'temporal'
 
   const fileInputRef = useRef(null)
   const textareaRef = useRef(null)
@@ -56,7 +59,8 @@ export default function InputBar({ onSend, disabled }) {
       const files = Array.from(e.target.files || [])
       if (!files.length) return
 
-      const remaining = MAX_IMAGES - images.length
+      const maxAllowed = analysisMode === 'temporal' ? MAX_TEMPORAL_IMAGES : MAX_IMAGES
+      const remaining = maxAllowed - images.length
       const toProcess = files.slice(0, remaining)
 
       const loaded = await Promise.all(
@@ -65,7 +69,7 @@ export default function InputBar({ onSend, disabled }) {
       setImages((prev) => [...prev, ...loaded])
       e.target.value = ''
     },
-    [images.length]
+    [images.length, analysisMode]
   )
 
   const handleRemoveImage = useCallback((index) => {
@@ -88,7 +92,8 @@ export default function InputBar({ onSend, disabled }) {
     const files = Array.from(e.dataTransfer.files || [])
     if (!files.length) return
 
-    const remaining = MAX_IMAGES - images.length
+    const maxAllowed = analysisMode === 'temporal' ? MAX_TEMPORAL_IMAGES : MAX_IMAGES
+    const remaining = maxAllowed - images.length
     const toProcess = files.slice(0, remaining)
 
     const loaded = await Promise.all(
@@ -105,6 +110,7 @@ export default function InputBar({ onSend, disabled }) {
       text: text.trim(),
       images,
       webSearch: webSearchActive,
+      analysisMode,
     })
 
     setText('')
@@ -113,9 +119,13 @@ export default function InputBar({ onSend, disabled }) {
       textareaRef.current.style.height = 'auto'
     }
     textareaRef.current?.focus()
-  }, [disabled, text, images, webSearchActive, onSend])
+  }, [disabled, text, images, webSearchActive, analysisMode, onSend])
 
-  const canSend = !disabled && (text.trim().length > 0 || images.length > 0)
+  // Validation: temporal mode requires exactly 2 images
+  const canSend =
+    !disabled &&
+    (text.trim().length > 0 || images.length > 0) &&
+    (analysisMode === 'single' || images.length === MAX_TEMPORAL_IMAGES)
 
   return (
     <div className="input-bar-container">
@@ -126,7 +136,11 @@ export default function InputBar({ onSend, disabled }) {
         onDrop={handleDrop}
       >
         {/* Thumbnail Preview Strip */}
-        <ImagePreview images={images} onRemove={handleRemoveImage} />
+        <ImagePreview
+          images={images}
+          onRemove={handleRemoveImage}
+          analysisMode={analysisMode}
+        />
 
         <div className="input-main-row">
           {/* Hidden File Picker */}
@@ -146,11 +160,30 @@ export default function InputBar({ onSend, disabled }) {
             type="button"
             className="input-action-btn"
             onClick={() => fileInputRef.current?.click()}
-            disabled={disabled || images.length >= MAX_IMAGES}
-            title={`Attach images (${images.length}/${MAX_IMAGES})`}
+            disabled={disabled || (analysisMode === 'temporal' ? images.length >= MAX_TEMPORAL_IMAGES : images.length >= MAX_IMAGES)}
+            title={
+              analysisMode === 'temporal'
+                ? `Attach images (${images.length}/${MAX_TEMPORAL_IMAGES})`
+                : `Attach images (${images.length}/${MAX_IMAGES})`
+            }
             aria-label="Attach images"
           >
             <ImageIcon size={18} />
+          </button>
+
+          {/* Temporal Analysis Mode Toggle */}
+          <button
+            type="button"
+            className={`input-action-btn ${analysisMode === 'temporal' ? 'input-action-btn--active' : ''}`}
+            onClick={() => {
+              setAnalysisMode(analysisMode === 'temporal' ? 'single' : 'temporal')
+              // Clear images when switching modes
+              setImages([])
+            }}
+            title={analysisMode === 'temporal' ? 'Temporal comparison enabled (2 images)' : 'Enable temporal comparison'}
+            aria-label="Toggle temporal comparison mode"
+          >
+            <Clock size={18} />
           </button>
 
           {/* Web Search Mode Toggle */}
@@ -172,7 +205,9 @@ export default function InputBar({ onSend, disabled }) {
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
             placeholder={
-              images.length > 0
+              analysisMode === 'temporal'
+                ? 'Ask about the changes between the two images... (Shift+Enter for newline)'
+                : images.length > 0
                 ? 'Add context or instructions for attached image(s)...'
                 : 'Ask SatQuery anything... (Shift+Enter for newline)'
             }
@@ -210,7 +245,11 @@ export default function InputBar({ onSend, disabled }) {
       <div className="input-footer-bar">
         <div className="input-footer-hint">
           <Sparkles size={11} color="var(--accent-mint)" />
-          <span>SatQuery can analyze code, text & images.</span>
+          <span>
+            {analysisMode === 'temporal'
+              ? 'Temporal comparison: Upload before & after images for change analysis.'
+              : 'SatQuery can analyze code, text & images.'}
+          </span>
           <span className="desktop-only">• Drag & drop images directly.</span>
         </div>
         {text.length > 0 && <span className="input-char-count">{text.length} chars</span>}

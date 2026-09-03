@@ -7,7 +7,7 @@ import Sidebar from './components/Sidebar'
 import ChatHeader from './components/ChatHeader'
 import ChatWindow from './components/ChatWindow'
 import InputBar from './components/InputBar'
-import { askQuestion, analyzeImage } from './api'
+import { askQuestion, analyzeImage, analyzeImageChange } from './api'
 
 // Fresh, empty initial session — no hardcoded demo history
 const INITIAL_SESSIONS = [
@@ -135,7 +135,7 @@ export default function App() {
 
   // Send a message
   const handleSend = useCallback(
-    ({ text, images }) => {
+    ({ text, images, analysisMode }) => {
       if (!text.trim() && images.length === 0) return
 
       const userMsg = {
@@ -144,6 +144,7 @@ export default function App() {
         text: text.trim(),
         images,
         timestamp: new Date(),
+        analysisMode, // Store mode for reference
       }
 
       // Update current session title if it was "New Conversation"
@@ -175,9 +176,12 @@ export default function App() {
         try {
           let apiResponse
           
-          // Route to appropriate endpoint
-          if (images.length > 0) {
-            // Image analysis: use /analyze endpoint with first image
+          // Route to appropriate endpoint based on analysis mode
+          if (analysisMode === 'temporal' && images.length === 2) {
+            // Temporal comparison: use /analyze-change endpoint with two images
+            apiResponse = await analyzeImageChange(images[0], images[1], text.trim())
+          } else if (images.length > 0) {
+            // Single image analysis: use /analyze endpoint with first image
             apiResponse = await analyzeImage(images[0], text.trim())
           } else {
             // Text-only: use /ask endpoint
@@ -185,14 +189,18 @@ export default function App() {
           }
 
           // Create assistant message with response data
+          // Handle both single image mode and temporal mode responses
           const botMsg = {
             id: uid(),
             role: 'assistant',
             text: apiResponse.answer || 'No response received',
             visualDescription: apiResponse.visual_description || null,
+            beforeDescription: apiResponse.before_description || null,
+            afterDescription: apiResponse.after_description || null,
             similarScenes: apiResponse.similar_scenes || [],
             images: [],
             timestamp: new Date(),
+            analysisMode, // Store mode for display context
           }
 
           setSessions((prev) =>
@@ -244,8 +252,10 @@ export default function App() {
       try {
         let apiResponse
 
-        // Route to appropriate endpoint based on whether user message had images
-        if (lastUserMsg.images && lastUserMsg.images.length > 0) {
+        // Route to appropriate endpoint based on analysis mode and image count
+        if (lastUserMsg.analysisMode === 'temporal' && lastUserMsg.images && lastUserMsg.images.length === 2) {
+          apiResponse = await analyzeImageChange(lastUserMsg.images[0], lastUserMsg.images[1], lastUserMsg.text)
+        } else if (lastUserMsg.images && lastUserMsg.images.length > 0) {
           apiResponse = await analyzeImage(lastUserMsg.images[0], lastUserMsg.text)
         } else {
           apiResponse = await askQuestion(lastUserMsg.text)
@@ -256,9 +266,12 @@ export default function App() {
           role: 'assistant',
           text: apiResponse.answer || 'No response received',
           visualDescription: apiResponse.visual_description || null,
+          beforeDescription: apiResponse.before_description || null,
+          afterDescription: apiResponse.after_description || null,
           similarScenes: apiResponse.similar_scenes || [],
           images: [],
           timestamp: new Date(),
+          analysisMode: lastUserMsg.analysisMode,
         }
 
         setSessions((prev) =>

@@ -136,8 +136,9 @@ export default function MessageBubble({ message, onRegenerate }) {
   const [reaction, setReaction] = useState(null) // 'like' | 'dislike' | null
   const [isSpeaking, setIsSpeaking] = useState(false)
 
-  const { role, text, images, timestamp, visualDescription, similarScenes } = message
+  const { role, text, images, timestamp, visualDescription, beforeDescription, afterDescription, similarScenes, analysisMode } = message
   const isUser = role === 'user'
+  const isTemporalAnalysis = analysisMode === 'temporal' && (beforeDescription || afterDescription)
 
   const handleCopyMessage = () => {
     if (!text) return
@@ -180,8 +181,33 @@ export default function MessageBubble({ message, onRegenerate }) {
             {/* Main Answer Text */}
             <FormattedMessageText text={text} />
 
-            {/* Visual Analysis Section */}
-            {!isUser && visualDescription && (
+            {/* Temporal Analysis Section (Before/After) */}
+            {!isUser && isTemporalAnalysis && (
+              <div className="temporal-analysis-section">
+                <h4 className="temporal-analysis-title">Temporal Analysis</h4>
+                <div className="temporal-analysis-grid">
+                  {beforeDescription && (
+                    <div className="temporal-analysis-card">
+                      <h5 className="temporal-stage-label">Before</h5>
+                      <div className="temporal-stage-content">
+                        <FormattedMessageText text={beforeDescription} />
+                      </div>
+                    </div>
+                  )}
+                  {afterDescription && (
+                    <div className="temporal-analysis-card">
+                      <h5 className="temporal-stage-label">After</h5>
+                      <div className="temporal-stage-content">
+                        <FormattedMessageText text={afterDescription} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Visual Analysis Section (Single Image Mode) */}
+            {!isUser && visualDescription && !isTemporalAnalysis && (
               <div className="visual-analysis-section">
                 <h4 className="visual-analysis-title">Visual Analysis</h4>
                 <div className="visual-analysis-content">

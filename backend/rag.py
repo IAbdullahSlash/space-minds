@@ -238,11 +238,12 @@ def analyze_image_pair(
     question
 ):
     """
-    Phase 4B.1:
-    Dual image Vision analysis for temporal satellite comparison.
+    Phase 4B.2:
+    Temporal satellite change reasoning.
 
-    Analyzes two satellite images independently and then compares
-    the resulting visual descriptions.
+    Analyzes the earlier and later satellite observations
+    independently and then performs structured temporal
+    reasoning between them.
 
     Image 1 = earlier observation
     Image 2 = later observation
@@ -252,7 +253,9 @@ def analyze_image_pair(
     before_result = analyze_image(
         before_image_bytes,
         before_image_mime_type,
-        "Describe this satellite image carefully for later temporal comparison."
+        "Describe this satellite image carefully for later temporal comparison. "
+        "Focus on land cover, vegetation, agriculture, forests, water, "
+        "built up areas, exposed soil and other visible geographic features."
     )
 
     before_description = before_result["visual_description"]
@@ -261,66 +264,153 @@ def analyze_image_pair(
     after_result = analyze_image(
         after_image_bytes,
         after_image_mime_type,
-        "Describe this satellite image carefully for later temporal comparison."
+        "Describe this satellite image carefully for later temporal comparison. "
+        "Focus on land cover, vegetation, agriculture, forests, water, "
+        "built up areas, exposed soil and other visible geographic features."
     )
 
     after_description = after_result["visual_description"]
 
+    # Perform temporal reasoning
     comparison_prompt = f"""
-You are a remote sensing expert performing temporal satellite image analysis.
+You are an expert remote sensing analyst performing temporal
+satellite image analysis.
 
-You have two observations of a geographic scene.
+You are comparing two observations of a geographic scene.
 
-EARLIER IMAGE ANALYSIS:
+EARLIER OBSERVATION:
 {before_description}
 
-LATER IMAGE ANALYSIS:
+LATER OBSERVATION:
 {after_description}
 
 USER QUESTION:
 {question}
 
-Your task is to compare the two observations.
+Your task is to identify and explain meaningful geographic
+changes between the earlier and later observations.
 
-Focus specifically on changes between the earlier and later observations.
+The earlier observation represents the BEFORE state.
 
-Analyze:
+The later observation represents the AFTER state.
 
-1. Land cover changes
-2. Vegetation changes
-3. Agricultural changes
-4. Forest changes
-5. Water related changes
-6. Artificial or built up surface changes
-7. Spatial expansion or reduction of visible regions
-8. Any other meaningful geographic change
+Analyze the following categories:
+
+1. Land cover change
+2. Vegetation change
+3. Agricultural change
+4. Forest change
+5. Water related change
+6. Built up or artificial surface change
+7. Spatial expansion or reduction
+8. Other meaningful geographic changes
+
+For every meaningful change, determine:
+
+Observed change:
+Describe exactly what appears different.
+
+Change direction:
+State whether the feature increased, decreased, appeared,
+disappeared, expanded or contracted.
+
+Possible interpretation:
+Explain what could potentially cause the observed change.
+
+Confidence:
+Classify the confidence as High, Medium or Low.
 
 IMPORTANT RULES:
 
-The earlier image represents the BEFORE state.
+Only report changes that are supported by the available
+evidence from both observations.
 
-The later image represents the AFTER state.
+Do not invent geographic changes.
 
-Only describe a change when there is evidence supporting it in both observations.
+Do not present assumptions as confirmed facts.
 
-Do not invent changes.
+Do not automatically interpret differences in appearance
+as real geographic changes.
 
-Do not assume that differences caused by lighting, season, image quality or atmospheric conditions are real land cover changes.
+Lighting differences may affect appearance.
 
-If the evidence is insufficient, explicitly say that the change cannot be confidently determined.
+Seasonal differences may affect vegetation and agriculture.
+
+Atmospheric conditions may affect image appearance.
+
+Cloud cover may obscure geographic features.
+
+Differences in image quality may affect the comparison.
+
+Differences caused by viewing conditions should not
+automatically be classified as actual land cover change.
+
+If the evidence is insufficient, explicitly state that
+the change cannot be confidently determined.
 
 Clearly distinguish between:
 
 Observed change
 
-Possible change
+Possible interpretation
 
 No clear change
 
-Return a concise but useful temporal analysis.
+The final response must answer the user's question directly.
 
-USER QUESTION:
-{question}
+Use this structure:
+
+TEMPORAL CHANGE ANALYSIS
+
+Overall assessment:
+Provide a concise summary of the most important changes.
+
+Observed changes:
+
+1. Category:
+[category]
+
+Observed change:
+[what changed]
+
+Change direction:
+[increase, decrease, appearance, disappearance,
+expansion, contraction or no clear change]
+
+Possible interpretation:
+[potential explanation]
+
+Confidence:
+[High, Medium or Low]
+
+2. Category:
+[category]
+
+Observed change:
+[what changed]
+
+Change direction:
+[increase, decrease, appearance, disappearance,
+expansion, contraction or no clear change]
+
+Possible interpretation:
+[potential explanation]
+
+Confidence:
+[High, Medium or Low]
+
+Continue only for meaningful changes.
+
+Environmental considerations:
+Explain whether season, lighting, atmospheric conditions,
+cloud cover, image quality or other factors could influence
+the observed differences.
+
+Final answer:
+Answer the user's question directly using the evidence
+from the comparison.
+
+Do not claim certainty when the evidence does not support it.
 """
 
     response = gemini_client.models.generate_content(
