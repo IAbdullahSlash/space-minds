@@ -203,9 +203,23 @@ export default function MessageBubble({ message, onRegenerate }) {
   const [reaction, setReaction] = useState(null) // 'like' | 'dislike' | null
   const [isSpeaking, setIsSpeaking] = useState(false)
 
-  const { role, text, images, timestamp, visualDescription, beforeDescription, afterDescription, similarScenes, analysisMode } = message
+  const { 
+    role, 
+    text, 
+    images, 
+    timestamp, 
+    visualDescription, 
+    beforeDescription, 
+    afterDescription, 
+    changeDetected, 
+    changes, 
+    environmentalConsiderations,
+    similarScenes, 
+    analysisMode 
+  } = message
   const isUser = role === 'user'
   const isTemporalAnalysis = analysisMode === 'temporal' && (beforeDescription || afterDescription)
+  const hasStructuredChanges = analysisMode === 'temporal' && (changes || []).length > 0
 
   const handleCopyMessage = () => {
     if (!text) return
